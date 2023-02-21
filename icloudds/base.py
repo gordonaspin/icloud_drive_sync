@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 from datetime import datetime, timedelta
+import calendar
 import time
 import hashlib
 
@@ -24,7 +25,6 @@ from pyicloud.exceptions import (PyiCloud2SARequiredException,
 # Must import the constants object so that we can mock values in tests.
 import icloudds.constants as constants
 from icloudds.authentication import authenticate
-from icloudds.download import set_utime
 from icloudds.email_notifications import send_2sa_notification
 from icloudds.logger import setup_logger
 from icloudds.logger import setup_database_logger
@@ -369,39 +369,13 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                                 f.write(chunk)
                                 f.flush()
                         # file timestamps from DriveService are represented in UTC
-                        set_utime(path, self._datetime_from_utc_to_local(child.date_modified))
+                        dt = child.date_modified
+                        epoch_seconds = calendar.timegm(dt.timetuple())
+                        os.utime(path, (epoch_seconds, epoch_seconds))
                         md5 = self._calculate_md5(path)
                         self.db.upsert_asset(child.name, folder.name, child.size, child.date_changed, child.date_modified, child.type, path, md5)
                         files_downloaded + files_downloaded + 1
         return files_downloaded
-
-    def upload_file(base, file, parent, reason):
-        cwd = os.getcwd()
-        os.chdir(base)
-        size = os.path.getsize(file)
-        filename, ext = os.path.splitext(file)
-        mtime = os.path.getmtime(file)
-        ctime = os.path.getctime(file)
-        retries = 0
-        while retries < constants.DOWNLOAD_MEDIA_MAX_RETRIES:
-            try:
-                with open(file, 'rb') as f:
-                    logger.info(f"uploading {reason} {os.path.join(base,file)}")
-                    parent.upload(f, mtime=mtime, ctime=ctime)
-                    md5 = calculate_md5(file)
-                    logger.info(f"updating {os.path.join(base,file)} md5 {md5}")
-                    db.upsert_asset(file, parent.name, size, ctime, mtime, ext, f"{os.path.join(base,file)}", md5)
-                    break
-            except PyiCloudAPIResponseException as ex:
-                retries = retries + 1
-                logger.info(f"exception in upload, retries = {retries}, retrying in {constants.DOWNLOAD_MEDIA_RETRY_CONNECTION_WAIT_SECONDS} seconds")
-                time.sleep(constants.DOWNLOAD_MEDIA_RETRY_CONNECTION_WAIT_SECONDS)
-
-        os.chdir(cwd)
-        if retries < constants.DOWNLOAD_MEDIA_MAX_RETRIES:
-            return 1
-        else:
-            return 0
 
     def _walk_local_drive(self):
         files_uploaded = 0
@@ -498,7 +472,7 @@ def main(
         log_level,
         unverified_https,
 ):
-    """Download all iCloud photos to a local directory"""
+    """Synchronize local folder with iCloud Drive and watch for file system changes"""
     logger = setup_logger()
 
     logger.disabled = False
@@ -575,154 +549,3 @@ def main(
         print(ex)
         sys.exit(constants.ExitCode.EXIT_FAILED_CLOUD_API.value)
 
-"""
-    def xdatetime_from_utc_to_local(utc_datetime):
-        now_timestamp = time.time()
-        offset = datetime.fromtimestamp(now_timestamp) - datetime.utcfromtimestamp(now_timestamp)
-        return utc_datetime + offset
-
-    def xround_seconds(obj: datetime) -> datetime:
-        if obj.microsecond >= 500_000:
-            obj += timedelta(seconds=1)
-        return obj.replace(microsecond=0)
-            
-    def xcalculate_md5(path):
-        with open(path, 'rb') as f:
-            data = f.read()    
-        return hashlib.md5(data).hexdigest()
-
-    def xlog_mtime_diff(mt, path, obj):
-        if mt < obj.date_modified:
-            logger.debug(f"{path} size: {os.path.getsize(path)} {obj.size} date: {mt} < {obj.date_modified}")
-        elif mt > obj.date_modified:
-            logger.debug(f"{path} size: {os.path.getsize(path)} {obj.size} date: {mt} > {obj.date_modified}")
-        else:
-            logger.debug(f"{path} size: {os.path.getsize(path)} {obj.size} date: {mt} = {obj.date_modified}")
-
-    def xneed_to_download(path, obj):
-        if obj.size is not None and os.path.getsize(path) != obj.size:
-            logger.warn(f"size difference: {path} {os.path.getsize(path)} {obj.name} {obj.size}")
-
-        mt = round_seconds(datetime.utcfromtimestamp(os.path.getmtime(path)))
-        log_mtime_diff(mt, path, obj)
-
-        if mt < obj.date_modified:
-            return True
-
-        if os.path.getsize(path) == 0 and obj.size is None:
-            return False
-
-        logger.info(f"skipping download: {path}")
-        return False
-
-    def xneed_to_upload(path, obj):
-        if obj.size is not None and os.path.getsize(path) != obj.size:
-            logger.warn(f"size difference: {path} {os.path.getsize(path)} {obj.name} {obj.size}")
-
-        mt = round_seconds(datetime.utcfromtimestamp(os.path.getmtime(path)))
-        log_mtime_diff(mt, path, obj)
-
-        if mt > obj.date_modified:
-            return True
-
-        if os.path.getsize(path) == 0 and obj.size is None:
-            return False
-        
-        logger.info(f"skipping upload: {path}")
-        return False
-
-    def xrecurse_icloud_drive(folder, directory):
-        logger.info(f"recursing iCloud Drive folder {folder.name}")
-        files_downloaded = 0
-        children = folder.get_children()
-        for child in children:
-            if child.type != "file":
-                path = os.path.join(directory, child.name)
-                if not os.path.exists(path):
-                    logger.info(f"creating local directory {path}")
-                    os.makedirs(path)
-                files_downloaded = files_downloaded + recurse_icloud_drive(child, path)
-            else:
-                path = os.path.join(directory, child.name)
-                if not os.path.exists(path) or need_to_download(path, child):
-                    logger.info(f"downloading {path}")
-                    with open(path, 'wb') as f:
-                        for chunk in child.open(stream=True).iter_content(chunk_size=constants.DOWNLOAD_MEDIA_CHUNK_SIZE):
-                            if chunk:
-                                f.write(chunk)
-                                f.flush()
-                        # file timestamps from DriveService are represented in UTC
-                        set_utime(path, datetime_from_utc_to_local(child.date_modified))
-                        md5 = calculate_md5(path)
-                        db.upsert_asset(child.name, folder.name, child.size, child.date_changed, child.date_modified, child.type, path, md5)
-                        files_downloaded + files_downloaded + 1
-        return files_downloaded
-
-    def xupload_file(base, file, parent, reason):
-        cwd = os.getcwd()
-        os.chdir(base)
-        size = os.path.getsize(file)
-        filename, ext = os.path.splitext(file)
-        mtime = os.path.getmtime(file)
-        ctime = os.path.getctime(file)
-        retries = 0
-        while retries < constants.DOWNLOAD_MEDIA_MAX_RETRIES:
-            try:
-                with open(file, 'rb') as f:
-                    logger.info(f"uploading {reason} {os.path.join(base,file)}")
-                    parent.upload(f, mtime=mtime, ctime=ctime)
-                    md5 = calculate_md5(file)
-                    logger.info(f"updating {os.path.join(base,file)} md5 {md5}")
-                    db.upsert_asset(file, parent.name, size, ctime, mtime, ext, f"{os.path.join(base,file)}", md5)
-                    break
-            except PyiCloudAPIResponseException as ex:
-                retries = retries + 1
-                logger.info(f"exception in upload, retries = {retries}, retrying in {constants.DOWNLOAD_MEDIA_RETRY_CONNECTION_WAIT_SECONDS} seconds")
-                time.sleep(constants.DOWNLOAD_MEDIA_RETRY_CONNECTION_WAIT_SECONDS)
-
-        os.chdir(cwd)
-        if retries < constants.DOWNLOAD_MEDIA_MAX_RETRIES:
-            return 1
-        else:
-            return 0
-
-    def xwalk_local_drive(drive, directory):
-        files_uploaded = 0
-        dir_base = directory.split(os.sep)
-        for base, dirs, files in os.walk(directory):
-            path = base.split(os.sep)
-            path = [a for a in path if a not in dir_base]
-            if (len(path) == 0):
-                parent = drive.root
-            else:
-                parent = drive.root
-                for i in range(len(path)):
-                    parent_name = path[i]
-                    parent = parent[parent_name]
-
-            reget_children = False
-            for dir in dirs:
-                try:
-                    folder = parent[dir]
-                except KeyError:
-                    logger.info(f"creating folder {parent.data.get('parentId', 'FOLDER::com.apple.CloudDocs::root')}::{parent.name}/{dir} in iCloud")
-                    drive.create_folders(parent.data['drivewsid'], dir)
-                    reget_children = True
-            
-            if reget_children:
-                parent.reget_children()
-
-            for f in files:
-                try:
-                    node = parent[f]
-                    if need_to_upload(os.path.join(base, f), parent[f]):
-                        node.delete()
-                        files_uploaded = files_uploaded + upload_file(base, f, parent, "local is newer")
-
-                except KeyError:
-                    logger.debug(f"{os.path.join(base, f)} does not exist in iCloud")
-                    _, filename = os.path.split(database.DatabaseHandler.db_file)
-                    if not filename == f:
-                       files_uploaded = files_uploaded + upload_file(base, f, parent,  "new file")
-        return files_uploaded
-"""   

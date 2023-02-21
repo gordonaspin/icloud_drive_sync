@@ -1,15 +1,13 @@
-# iCloud Photos Downloader ![Quality Checks](https://github.com/icloud-photos-downloader/icloud_photos_downloader/workflows/Quality%20Checks/badge.svg) [![Build Status](https://travis-ci.org/ndbroadbent/icloud_photos_downloader.svg?branch=master)](https://travis-ci.org/ndbroadbent/icloud_photos_downloader) [![Coverage Status](https://coveralls.io/repos/github/ndbroadbent/icloud_photos_downloader/badge.svg?branch=master)](https://coveralls.io/github/ndbroadbent/icloud_photos_downloader?branch=master) [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+# iCloud Drive Sync [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 - A command-line tool to download synchronize your iCloud Drive.
 - Works on Linux, Windows, and MacOS.
-- Run as a [scheduled cron task](#cron-task) to keep a local backup of your photos and videos
-- Run as a docker container, available directly from dockerhub at docker pull gordonaspin/icloudds:latest
-
-This tool is forked from the original icloud_photos_downloader developed and maintained by volunteers. They are always looking for [help](CONTRIBUTING.md)...). I am happy to entertain feature requests on this fork. I aim to release new versions if there is something worth delivering.
+- Run as a [scheduled cron task](#cron-task) to keep a local backup of your iCloud Drive folders and contents
 
 ## Install
+`icloudds` depends on the python pyicloud library. 
 
-`icloudds` is a Python package that can be installed using `pip`, but it's borked as it only retrieves the first 200 albums in your iCloud library. Use my forked pyicloud implementation https://github.com/gordonaspin/pyicloud:
+`pyicloud` is a Python package that can be installed using `pip`, but it's borked as it only retrieves the first 200 albums in your iCloud library. Use my forked pyicloud implementation https://github.com/gordonaspin/pyicloud:
 
 ``` sh
 git clone https://github.com/gordonaspin/pyicloud
@@ -24,9 +22,10 @@ pip install .
 [//]: # (This is now only a copy&paste from --help output)
 
 ``` plain
+$ python icloudds.py -h
 Usage: icloudds.py <options>
 
-  Download all iCloud photos to a local directory
+  Synchronize local folder with iCloud Drive and watch for file system changes
 
 Options:
   -d, --directory <directory>     Local directory that should be used for
@@ -37,52 +36,8 @@ Options:
   --cookie-directory </cookie/directory>
                                   Directory to store cookies for
                                   authentication (default: ~/.pyicloud)
-  --size [original|medium|thumb]  Image size to download (default: original)
-  --live-photo-size [original|medium|thumb]
-                                  Live Photo video size to download (default:
-                                  original)
-  --recent INTEGER RANGE          Number of recent photos to download
-                                  (default: download all photos)  [x>=0]
-  --date-since [%Y-%m-%d|%Y-%m-%d-%H:%M:%S]
-                                  Download only assets newer than date-since
-  --newest                        Download only assets newer than newest asset
-                                  date from local icloudds.db. Will override
-                                  --date-since value.
-  --until-found INTEGER RANGE     Download most recently added photos until we
-                                  find x number of previously downloaded
-                                  consecutive photos (default: download all
-                                  photos)  [x>=0]
-  -a, --album <album>             Album to download (default: All Photos)
-  --all-albums                    Download all albums
-  --skip-smart-folders            Exclude smart folders from listing or
-                                  download: All Photos, Time-lapse, Videos,
-                                  Slo-mo, Bursts, Favorites, Panoramas,
-                                  Screenshots, Live, Recently Deleted, Hidden
-  -l, --list-albums               Lists the avaliable albums and exits
-  -s, --sort [asc|desc]           Sort album names (default: desc)
-  --skip-videos                   Don't download any videos (default: Download
-                                  all photos and videos)
-  --skip-live-photos              Don't download any live photos (default:
-                                  Download live photos)
-  --force-size                    Only download the requested size (default:
-                                  download original if size is not available)
-  --auto-delete                   Scans the "Recently Deleted" folder and
-                                  deletes any files found in there. (If you
-                                  restore the photo in iCloud, it will be
-                                  downloaded again.)
-  --only-print-filenames          Only prints the filenames of all files that
-                                  will be downloaded (not including files that
-                                  are already downloaded). (Does not download
-                                  or delete any files.)
-  --folder-structure <folder_structure>
-                                  Folder structure (default: {:%Y/%m/%d}). If
-                                  set to 'none' all photos will just be placed
-                                  into the download directory, if set to
-                                  'album' photos will be placed in a folder
-                                  named as the album into the download
-                                  directory
-  --set-exif-datetime             Write the DateTimeOriginal exif tag from
-                                  file creation date, if it doesn't exist.
+  --sync                          Runs an initial scan of iCloud Drive and
+                                  local filesystem
   --smtp-username <smtp_username>
                                   Your SMTP username, for sending email
                                   notifications when two-step authentication
@@ -105,10 +60,9 @@ Options:
                                   authentication expires. (path required:
                                   /path/to/my/script.sh)
   --log-level [debug|info|error]  Log level (default: debug)
-  --no-progress-bar               Disables the one-line progress bar and
-                                  prints log messages on separate lines
-                                  (Progress bar is disabled by default if
-                                  there is no tty attached)
+  --unverified-https              Overrides default https context with
+                                  unverified https context
+  --version                       Show the version and exit.
   -h, --help                      Show this message and exit.
 ```
 
@@ -118,8 +72,8 @@ Example:
 icloudds --directory ./Photos \
 --username testuser@example.com \
 --password pass1234 \
---recent 500 \
---auto-delete
+--directory Drive/ \
+--sync
 ```
 
 ## Requirements
