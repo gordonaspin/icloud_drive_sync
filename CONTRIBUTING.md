@@ -1,10 +1,10 @@
-# Contributing iCloud Photos Downloader
+# Contributing iCloud Drive Sync
 
 [//]: # (inspired from https://raw.githubusercontent.com/keepassxreboot/keepassxc/develop/.github/CONTRIBUTING.md)
 
 :+1::tada: First off, thanks for taking the time to contribute! :tada::+1:
 
-We'd love your contributions to iCloud Photos Downloader. You don't have to know how to code to be able to help!
+We'd love your contributions to iCloud Drive Sync. You don't have to know how to code to be able to help!
 
 Please review the following guidelines before contributing.  Also, feel free to propose changes to these guidelines by updating this file and submitting a pull request.
 
@@ -69,10 +69,8 @@ There are some requirements for pull requests:
 
 If you need to make any changes to the `pyicloud` library,
 `icloudds` uses a fork of this library that has been renamed to `pyicloud-ipd`.
-Please clone my [pyicloud fork](https://github.com/icloud-photos-downloader/pyicloud)
-and check out the [pyicloud-ipd](https://github.com/icloud-photos-downloader/pyicloud/tree/pyicloud-ipd)
-branch. PRs should be based on the `pyicloud-ipd` branch and submitted to
-[icloud-photos-downloader/pyicloud](https://github.com/icloud-photos-downloader/pyicloud).
+Please clone my [pyicloud fork](https://github.com/gordonaspin/pyicloud)
+fork.
 
 ## Setting up the development environment
 
@@ -92,34 +90,8 @@ pytest
 ### Building the Docker image
 
 ``` none
-git clone https://github.com/icloud-photos-downloader/icloud_photos_downloader.git
-cd icloud_photos_downloader
+git clone https://github.com/gordonaspin/icloud_drive_sync.git
+cd icloud_drive_sync
 docker build -t icloudds/icloudds .
 ```
 
-## How to write a unit test
-
-The unit tests are a very important asset of this project. Due to our 100% test coverage we can savely use great tools like [Dependabot](dependabot.com) and be sure that the implementation of a new feature or fixing of a bug does not lead to further issues.
-
-We're relying on [pytest](pytest.org) for the creation of our tests and [VCR.py](https://github.com/kevin1024/vcrpy) for automatic mocking of the communication to iCloud. This makes the creation of testcases rather simple as you don't have to deal with the communication to iCloud itself and can just focus on the "real test". Both tools maintain great howtos that can be found here:
-
-* pytest documentation: https://docs.pytest.org/en/stable/
-* VCR.py documentation: https://vcrpy.readthedocs.io/en/latest/
-
-It is highly recommented to have a look at those.
-
-The process is mostly like this (assuming we're talking about a bug fix here...)
-
-1. Is there already a related testcase existing? If so you can just check if an existing test needs to check for another situation.
-1. If not, then you need to make sure you have correspnding test-data at hand; that means: your iCloud photos library should have a constellation that leads to the error in `icloudds`.
-1. Add a test-function that runs `icloudds` with the necessary start parameters, referencing to a new cassette file.
-1. **VERY IMPORTANT:** the real iCloud response is cached, so every image is saved in the cassette. That means:
-   1. Don't use private photos!
-   1. keep the dataset small (p.e. using `--recent`)
-   1. Remove your personal information from the cached REST-response (Name, email adresses)
-1. Go back to the previous step and verify again that you followed the recommendations!
-1. Now you can start adding tests.
-
-Refer to the existing tests for inspiration. A very simple test to to understand the basic idea might be the test for the listing of albums option in `tests/test_listing_albums.py`.
-
-When testing a bugfix it is important to test the faulty behavior and also the expected behavior.

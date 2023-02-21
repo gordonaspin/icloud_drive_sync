@@ -26,12 +26,12 @@ def send_2sa_notification(
     if smtp_email is not None or smtp_password is not None:
         smtp.login(smtp_email, smtp_password)
 
-    subj = "icloud_photos_downloader: Two step authentication has expired"
+    subj = "icloud_drive_sync -: Two step authentication has expired"
     date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
 
     message_text = """Hello,
 
-Two-step authentication has expired for the icloud_photos_downloader script.
+Two-step authentication has expired for the icloud_drive_sync script.
 Please log in to your server and run the script manually to update two-step authentication."""
 
     msg = "From: %s\nTo: %s\nSubject: %s\nDate: %s\n\n%s" % (

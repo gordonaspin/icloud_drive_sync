@@ -6,7 +6,7 @@ with open("requirements.txt") as f:
 setup(
     name="icloudds",
     version="2.0.0",
-    url="https://github.com/gordonaspin/icloud_photos_downloader",
+    url="https://github.com/gordonaspin/icloud_drive_sync",
     description=(
         "icloudds is a command-line tool to synchronize your iCloud Drive to the local filesystem."
     ),
