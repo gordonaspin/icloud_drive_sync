@@ -1,0 +1,29 @@
+# This image is mainly used for development and testing
+
+FROM python:latest
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y tzdata bash 
+RUN python -m pip install --upgrade pip
+RUN git clone https://github.com/gordonaspin/icloud_drive_sync.git
+RUN git clone https://github.com/gordonaspin/pyicloud.git
+
+RUN pip3 install -r icloud_drive_sync/requirements.txt
+RUN pip3 install -r pyicloud/requirements.txt
+
+WORKDIR /app/icloud_drive_sync
+RUN scripts/build
+WORKDIR /app/pyicloud
+RUN scripts/build
+
+ARG TZ="America/New_York"
+RUN cp /usr/share/zoneinfo/$TZ /etc/localtime
+
+RUN pip3 install /app/icloud_drive_sync/dist/*.whl
+RUN pip3 install /app/pyicloud/dist/*.whl
+
+ARG USER_ID
+RUN adduser --disabled-password --gecos '' -uid $USER_ID docker
+USER docker
+ENV TZ=${TZ}

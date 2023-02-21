@@ -1,0 +1,25 @@
+#!/bin/bash
+set -euo pipefail
+
+# realpath not availabe on Mac by default...
+realpath() {
+    [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
+}
+
+CURRENT_DIR=$(dirname "$0")
+ROOT_DIR="$(realpath $(dirname "$0")/..)"
+
+ICLOUDDS_VERSION="$(cat "$ROOT_DIR/setup.py" | grep version= | cut -d'"' -f 2)"
+echo "Current icloudds version: ${ICLOUDDS_VERSION}"
+
+docker build \
+  -t "gordonaspin/icloudds:${ICLOUDDS_VERSION}" \
+  -f "Dockerfile.from_repo" \
+  --no-cache \
+  --build-arg ICLOUDDS_VERSION=${ICLOUDDS_VERSION} \
+  --build-arg USER_ID=$(id -u) \
+  "$ROOT_DIR"
+
+docker tag "gordonaspin/icloudds:${ICLOUDDS_VERSION}" "gordonaspin/icloudds:${ICLOUDDS_VERSION}-alpine"
+docker tag "gordonaspin/icloudds:${ICLOUDDS_VERSION}" "gordonaspin/icloudds:latest"
+docker push -a gordonaspin/icloudds

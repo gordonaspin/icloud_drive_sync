@@ -1,0 +1,9 @@
+#!/bin/bash
+# Make sure it's not already running
+pgrep -f icloudds && echo "icloudds is already running." && exit
+
+icloudds /your/photos/directory \
+  --username testuser@example.com \
+  --password pass1234 \
+  --recent 500 \
+  --auto-delete
