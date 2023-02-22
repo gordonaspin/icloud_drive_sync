@@ -243,8 +243,12 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         return 0
 
     def _create_icloud_folders(self, path):
+        """Create the iCloud Drive folder objects (as needed) represented by path"""
         folder = self.drive.root
         icfs = self._get_icloud_folders(path)
+
+        # Walk the path and try accessing the child object. If KeyError exception, the
+        # child object does not exist, so create the folder and continue down the path
         for f in icfs:
             try:
                 folder = folder[f]
@@ -264,6 +268,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         return folder
 
     def _get_icloud_parent(self, path):
+        """Return the DriveNode object that is the parent of the DriveNode object represented by path"""
         folder = self.drive.root
         icfs = self._get_icloud_folders(path)
 
@@ -275,21 +280,29 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         return folder
 
     def _get_icloud_node(self, path):
+        """Return the DriveNode object representing the given path, otherwise None"""
         folder = self.drive.root
         icfs = self._get_icloud_folders(path)
         filename = os.path.split(path)[1]
 
+        # for each folder in the hierarchy, walk down to the leaf folder
+        # if we get a KeyError exception the node does not exist (folder)
         for f in icfs:
             try:
                 folder = folder[f]
             except KeyError as ex:  # folder does not exist in iCloud
                 return None
+            
+        # folder is either self.drive.root, or the folder containing the item
+        # if we get a KeyError exception the node does not exist (file)
         try:
             return folder[filename]
         except KeyError as ex:
             return None # file does not exist in iCloud
+        
 
     def _get_icloud_folders(self, path):
+        """Return a list of folder names representing the path deeper that the root folder"""
         _ = os.path.split(path)
         return [a for a in _[0].split(os.sep) if a not in self.directory.split(os.sep)]
 
@@ -326,6 +339,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         return False
 
     def _round_seconds(self, obj: datetime) -> datetime:
+        """iCloud Drive stores files in the cloud using UTC, however it rounds the seconds up to the nearest second"""
         if obj.microsecond >= 500_000:
             obj += timedelta(seconds=1)
         return obj.replace(microsecond=0)
@@ -343,12 +357,10 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             data = f.read()    
         return hashlib.md5(data).hexdigest()
 
-    def _datetime_from_utc_to_local(self, utc_datetime):
-        now_timestamp = time.time()
-        offset = datetime.fromtimestamp(now_timestamp) - datetime.utcfromtimestamp(now_timestamp)
-        return utc_datetime + offset
-
     def _recurse_icloud_drive(self, folder, directory):
+        """Recurse the iCloud Drive folder structure, create local folders under directory
+        as needed. Download files to the local folders, as needed. Set the mtime of downloaded
+        files to the epoch seconds in UTC"""
         self.logger.info(f"recursing iCloud Drive folder {folder.name}")
         files_downloaded = 0
         children = folder.get_children()
@@ -368,7 +380,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                             if chunk:
                                 f.write(chunk)
                                 f.flush()
-                        # file timestamps from DriveService are represented in UTC
+                        # file timestamps from DriveService are represented in UTC and rounded to nearest second
                         dt = child.date_modified
                         epoch_seconds = calendar.timegm(dt.timetuple())
                         os.utime(path, (epoch_seconds, epoch_seconds))
@@ -378,6 +390,9 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         return files_downloaded
 
     def _walk_local_drive(self):
+        """Walk the local filesystem, create folders in iCloud corresponding the folders below
+        self.directory as needed. Upload files found to iCloud if the modified time is newer than
+        the DriveNode or if the DriveNode was not found"""
         files_uploaded = 0
         dir_base = self.directory.split(os.sep)
         for base, dirs, files in os.walk(self.directory):
@@ -483,6 +498,8 @@ def main(
     elif log_level == "error":
         logger.setLevel(logging.ERROR)
 
+    directory = os.path.abspath(directory)
+
     logger.info(f"directory: {directory}")
     logger.info(f"username: {username}")
     logger.info(f"cookie_directory: {cookie_directory}")
@@ -503,7 +520,6 @@ def main(
 
     database.setup_database(directory)
     setup_database_logger()
-    #db = database.DatabaseHandler()
     
     raise_authorization_exception = (
         smtp_username is not None
