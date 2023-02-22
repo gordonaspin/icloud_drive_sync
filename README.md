@@ -205,14 +205,13 @@ Usage:
 # Downloads all iCloud Drive items to ./Drive
 
 docker pull gordonaspin/icloudds
-docker run -it --rm --name icloud \
+docker run -it --rm --name icloudds \
     -v $(pwd)/Drive:/data \
     -v $(pwd)/cookies:/cookies \
     -e TZ=America/Los_Angeles \
     icloudds/icloudds:latest \
     icloudds --directory /data \
     --cookie-directory /cookies \
-    --folder-structure {:%Y/%Y-%m-%d} \
     --username testuser@example.com \
     --password pass1234 \
     --sync
@@ -240,7 +239,7 @@ docker exec -it icloud icloud --username apple_id@mail.com --llist
 docker exec -it icloud icloudds -h
 
 # start the container with mounts for the Drive folder and cookie storage:
-docker run -it --detach --name icloud -v ~/iCloud\ Drive/:/data -v ~/.pyicloud:/cookies your-repo/icloudds sleep infinity
+docker run -it --detach --name icloud -v ~/iCloud\ Drive/:/data -v ~/.pyicloud:/cookies your-repo/icloudds /bin/bash -c "while true; do sleep 60; done"
 
 # run icloudds inside the container and download iCloud Drive items, for example:
 docker exec -it icloud icloudds -d /data --cookie-directory /cookies -u apple_id@email.com --sync
