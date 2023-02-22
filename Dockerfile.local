@@ -18,7 +18,7 @@ COPY dist/* /tmp/
 RUN set -xe \
   && pip install wheel==0.35.1 \
   && pip install /tmp/pyicloud-${PYICLOUD_VERSION}-py2.py3-none-any.whl \
-  && pip install /tmp/icloudds-${ICLOUDDS_VERSION}-py2.py3-none-any.whl \
+  && pip install /tmp/icloudds-${ICLOUDDS_VERSION}-py3-none-any.whl \
   && pip list \
   && icloud -h | head -n1 \
   && icloudds -h | head -n1 \

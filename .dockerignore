@@ -13,7 +13,7 @@ Drive/
 .coverage
 .coverage.*
 .git
-tests/fixtures/中文
+tests/
 .venv
 venv
 create/
