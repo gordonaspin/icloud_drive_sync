@@ -69,7 +69,7 @@ Options:
 Example:
 
 ``` sh
-icloudds --directory ./Photos \
+icloudds --directory ./Drive \
 --username testuser@example.com \
 --password pass1234 \
 --directory Drive/ \
@@ -156,9 +156,9 @@ When you run the script for the first time, you might see an error message like 
 Bad Request (400)
 ```
 
-This error often happens because your account hasn't used the iCloud API before, so Apple's servers need to prepare some information about your photos. This process can take around 5-10 minutes, so please wait a few minutes and try again.
+This error often happens because your account hasn't used the iCloud API before, so Apple's servers need to prepare some information about your iCloud Drive. This process can take around 5-10 minutes, so please wait a few minutes and try again.
 
-If you are still seeing this message after 30 minutes, then please [open an issue on GitHub](https://github.com/icloud-photos-downloader/icloud_photos_downloader/issues/new) and post the script output.
+If you are still seeing this message after 30 minutes, then please [open an issue on GitHub](https://github.com/gordonaspin/icloud_drive_sync/issues/new) and post the script output.
 
 ## Cron Task
 
@@ -166,8 +166,8 @@ Follow these instructions to run `icloudds` as a scheduled cron task.
 
 ``` sh
 # Clone the git repo somewhere
-git clone https://github.com/gordonaspin/icloud_photos_downloader.git
-cd icloud_photos_downloader
+git clone https://github.com/gordonaspin/icloud_drive_sync.git
+cd icloud_drive_sync
 
 # Copy the example cron script
 cp cron_script.sh.example cron_script.sh
@@ -178,10 +178,8 @@ cp cron_script.sh.example cron_script.sh
 - Edit your "crontab" with `crontab -e`, then add the following line:
 
 ``` plain
-0 */6 * * * /path/to/icloud_photos_downloader/cron_script.sh
+0 */6 * * * /path/to/icloud_drive_sync/cron_script.sh
 ```
-
-Now the script will run every 6 hours to download any new photos and videos.
 
 > If you provide SMTP credentials, the script will send an email notification
 > whenever two-step authentication expires.
@@ -193,11 +191,11 @@ This script is available in a Docker image: `docker pull gordonaspin/icloudds:la
 Usage:
 
 ```bash
-# Downloads all photos to ./Photos
+# Downloads all iCloud Drive items to ./Drive
 
 docker pull gordonaspin/icloudds
 docker run -it --rm --name icloud \
-    -v $(pwd)/Photos:/data \
+    -v $(pwd)/Drive:/data \
     -v $(pwd)/cookies:/cookies \
     -e TZ=America/Los_Angeles \
     icloudds/icloudds:latest \
@@ -206,15 +204,13 @@ docker run -it --rm --name icloud \
     --folder-structure {:%Y/%Y-%m-%d} \
     --username testuser@example.com \
     --password pass1234 \
-    --size original \
-    --recent 500 \
-    --auto-delete
+    --sync
 ```
 
 On Windows:
 
 - use `%cd%` instead of `$(pwd)`
-- or full path, e.g. `-v c:/photos/icloud:/data`
+- or full path, e.g. `-v c:/icloud/Drive:/data`
 
 Building docker image from this repo and gordonaspin/pyicloud repo image locally:
 
@@ -232,11 +228,11 @@ docker exec -it icloud icloud --username apple_id@mail.com --llist
 # run icloudds -h
 docker exec -it icloud icloudds -h
 
-# start the container with mounts for the Photos folder and cookie storage:
-docker run -it --detach --name icloud -v ~/Pictures/Photos:/data -v ~/.pyicloud:/cookies your-repo/icloudds sleep infinity
+# start the container with mounts for the Drive folder and cookie storage:
+docker run -it --detach --name icloud -v ~/iCloud\ Drive/:/data -v ~/.pyicloud:/cookies your-repo/icloudds sleep infinity
 
-# run icloudds inside the container and download photos that meet your criteria, for example:
-docker exec -it icloud icloudds -d /data --cookie-directory /cookies --all-albums --folder-structure album -u apple_id@email.com --no-progress-bar --date-since 2022-12-01
+# run icloudds inside the container and download iCloud Drive items, for example:
+docker exec -it icloud icloudds -d /data --cookie-directory /cookies -u apple_id@email.com --sync
 
 ```
 
@@ -250,4 +246,4 @@ docker run -it --rm icloudds:latest icloudds --version
 
 ## Contributing
 
-Want to contribute to iCloud Photos Downloader? Awesome! Check out the [contributing guidelines](CONTRIBUTING.md) to get involved.
+Want to contribute to iCloud Drive sync ? Awesome! Check out the [contributing guidelines](CONTRIBUTING.md) to get involved.

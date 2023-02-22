@@ -55,7 +55,7 @@ further defined and clarified by project maintainers.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by contacting the project team by opening an [issue](https://github.com/icloud-photos-downloader/icloud_photos_downloader/issues/new). All
+reported by contacting the project team by opening an [issue](https://github.com/gordonaspin/icloud_drive_sync/issues/new). All
 complaints will be reviewed and investigated and will result in a response that
 is deemed necessary and appropriate to the circumstances. The project team is
 obligated to maintain confidentiality with regard to the reporter of an incident.

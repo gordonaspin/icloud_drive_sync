@@ -35,7 +35,7 @@ Two-step authentication has expired for the icloud_drive_sync script.
 Please log in to your server and run the script manually to update two-step authentication."""
 
     msg = "From: %s\nTo: %s\nSubject: %s\nDate: %s\n\n%s" % (
-        "iCloud Photos Downloader <" + from_addr + ">",
+        "iCloud Drive Sync <" + from_addr + ">",
         to_addr,
         subj,
         date,
