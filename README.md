@@ -198,11 +198,13 @@ cp cron_script.sh.example cron_script.sh
 ## Docker
 
 This script is available in a Docker image:
-`docker pull gordonaspin/icloudds:latest`
-
+```bash
+docker pull gordonaspin/icloudds:latest
+```
 The iamge defines an entrypoint:
-`ENTRYPOINT [ "icloudds", "-d", "/drive", "--cookie-directory", "/cookies" ]`
-
+```bash
+ENTRYPOINT [ "icloudds", "-d", "/drive", "--cookie-directory", "/cookies" ]
+```
 Usage:
 
 ```bash
@@ -220,7 +222,7 @@ docker run -it --name icloudds \
 On Windows:
 
 - use `%cd%` instead of `$(pwd)`
-- or full path, e.g. `-v c:/icloud/Drive:/data`
+- or full path, e.g. `-v c:/icloud/Drive:/drive`
 
 Building docker image from this repo and gordonaspin/pyicloud repo image locally:
 
@@ -229,29 +231,18 @@ docker build --tag your-repo/icloudds:latest --progress=plain -f ./Dockerfile.fr
 
 # run container forever in the background so we can keep a temporal keyring and cookies
 # the keyring and cookies will exist until the container exits
-docker run -it --detach --name icloud your-repo/icloudds sleep infinity
+docker run -it --name icloudds your-repo/icloudds sleep infinity
 
-# the pyicloud icloudd command line utility
+# the pyicloud icloud command line utility
 # this will optionally create a python keyring in the container for future use, cookies will go to a tmp folder in the container
-docker exec -it icloud icloud --username apple_id@mail.com --llist
+docker exec -it icloudds icloud --username apple_id@mail.com
 
 # run icloudds -h
-docker exec -it icloud icloudds -h
+docker exec -it icloudds icloudds -h
 
 # start the container with mounts for the Drive folder and cookie storage:
-docker run -it --detach --name icloud -v ~/iCloud\ Drive/:/data -v ~/.pyicloud:/cookies your-repo/icloudds /bin/bash -c "while true; do sleep 60; done"
+docker run -it --name icloudds -v ~/iCloud\ Drive:/drive -v ~/.pyicloud:/cookies your-repo/icloudds -u username@email.com --sync
 
-# run icloudds inside the container and download iCloud Drive items, for example:
-docker exec -it icloud icloudds -d /data --cookie-directory /cookies -u apple_id@email.com --sync
-
-```
-
-
-Building original (from pre-fork) image locally:
-
-```bash
-docker build . -t icloudds
-docker run -it --rm icloudds:latest icloudds --version
 ```
 
 ## Contributing
