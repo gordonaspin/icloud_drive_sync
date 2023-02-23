@@ -197,23 +197,23 @@ cp cron_script.sh.example cron_script.sh
 
 ## Docker
 
-This script is available in a Docker image: `docker pull gordonaspin/icloudds:latest`
+This script is available in a Docker image:
+`docker pull gordonaspin/icloudds:latest`
+
+The iamge defines an entrypoint:
+`ENTRYPOINT [ "icloudds", "-d", "/drive", "--cookie-directory", "/cookies" ]`
 
 Usage:
 
 ```bash
 # Downloads all iCloud Drive items to ./Drive
 
-docker pull gordonaspin/icloudds
-docker run -it --rm --name icloudds \
-    -v $(pwd)/Drive:/data \
+docker pull gordonaspin/icloudds:latest
+docker run -it --name icloudds \
+    -v $(pwd)/Drive:/drive \
     -v $(pwd)/cookies:/cookies \
-    -e TZ=America/Los_Angeles \
     icloudds/icloudds:latest \
-    icloudds --directory /data \
-    --cookie-directory /cookies \
     --username testuser@example.com \
-    --password pass1234 \
     --sync
 ```
 
