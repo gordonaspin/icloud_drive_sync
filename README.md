@@ -171,29 +171,6 @@ This error often happens because your account hasn't used the iCloud API before,
 
 If you are still seeing this message after 30 minutes, then please [open an issue on GitHub](https://github.com/gordonaspin/icloud_drive_sync/issues/new) and post the script output.
 
-## Cron Task
-
-Follow these instructions to run `icloudds` as a scheduled cron task.
-
-``` sh
-# Clone the git repo somewhere
-git clone https://github.com/gordonaspin/icloud_drive_sync.git
-cd icloud_drive_sync
-
-# Copy the example cron script
-cp cron_script.sh.example cron_script.sh
-```
-
-- Update `cron_script.sh` with your username, password, and other options
-
-- Edit your "crontab" with `crontab -e`, then add the following line:
-
-``` plain
-0 */6 * * * /path/to/icloud_drive_sync/cron_script.sh
-```
-
-> If you provide SMTP credentials, the script will send an email notification
-> whenever two-step authentication expires.
 
 ## Docker
 
@@ -214,7 +191,7 @@ docker pull gordonaspin/icloudds:latest
 docker run -it --name icloudds \
     -v $(pwd)/Drive:/drive \
     -v $(pwd)/cookies:/cookies \
-    icloudds/icloudds:latest \
+    gordonaspin/icloudds:latest \
     --username testuser@example.com \
     --sync
 ```
@@ -227,11 +204,8 @@ On Windows:
 Building docker image from this repo and gordonaspin/pyicloud repo image locally:
 
 ```bash
-docker build --tag your-repo/icloudds:latest --progress=plain -f ./Dockerfile.from_repo .
-
-# run container forever in the background so we can keep a temporal keyring and cookies
-# the keyring and cookies will exist until the container exits
-docker run -it --name icloudds your-repo/icloudds sleep infinity
+docker build --tag your-repo/icloudds:latest --progress=plain -f ./Dockerfile.from_repo
+docker build --tag your-repo/icloudds:latest --progress=plain -f ./Dockerfile.local
 
 # the pyicloud icloud command line utility
 # this will optionally create a python keyring in the container for future use, cookies will go to a tmp folder in the container
