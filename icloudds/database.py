@@ -109,6 +109,13 @@ class DatabaseHandler(Handler):
         except sql.Error as er:
             self.print_error(er)
 
+    def delete_asset(self, path):
+        try:
+            self.db_conn.execute("delete from Asset where path = ?", (path,))
+            self.db_conn.commit()
+        except sql.Error as er:
+            self.print_error(er)
+
     def upsert_asset(self, name, parent, size, created, modified, ext, path, md5):
         try:
             self.db_conn.execute("INSERT OR REPLACE INTO Asset VALUES (:1,:2,:3,:4,:5,:6,:7,:8)", (

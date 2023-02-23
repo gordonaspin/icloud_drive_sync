@@ -113,6 +113,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 obj.delete()
             else:
                 self.logger.debug(f"DELETED  {event.src_path} file does not need to be deleted {event}")
+            self.db.delete_asset(event.src_path)
             parent = self._get_icloud_parent(event.src_path)
             if parent is not None:
                 parent.reget_children()
@@ -221,9 +222,9 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                     with open(file, 'rb') as f:
                         self.logger.info(f"uploading {reason} {os.path.join(base,file)}")
                         parent.upload(f, mtime=mtime, ctime=ctime)
-                        #md5 = calculate_md5(file)
-                        #logger.info(f"updating {os.path.join(base,file)} md5 {md5}")
-                        #db.upsert_asset(file, parent.name, size, ctime, mtime, ext, f"{os.path.join(base,file)}", md5)
+                        md5 = self._calculate_md5(file)
+                        self.logger.info(f"updating {os.path.join(base,file)} md5 {md5}")
+                        self.db.upsert_asset(file, parent.name, size, ctime, mtime, ext, f"{os.path.join(base,file)}", md5)
                         break
                 except PyiCloudAPIResponseException as ex:
                     retries = retries + 1
