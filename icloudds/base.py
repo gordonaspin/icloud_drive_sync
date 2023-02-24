@@ -59,37 +59,38 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         if event.is_directory:
             if event.src_path + "/" == self.directory:
                 return
-            self.logger.debug(f"ANY      {event.src_path} directory any event {event}")
+            self.logger.debug(f"{event.event_type}: {event.src_path} directory any event {event}")
         else:
-            self.logger.debug(f"ANY      {event.src_path} file any event {event}")
+            self.logger.debug(f"{event.event_type}: {event.src_path} file any event {event}")
 
     def on_created(self, event):
         self.setup()
         if event.is_directory:
-            self.logger.debug(f"CREATED  {event.src_path} directory created {event}")
+            self.logger.debug(f"{event.event_type}: {event.src_path} directory created {event}")
             paths = os.path.split(event.src_path)
-            self.logger.debug(f"CREATED  {paths}")
             parent = self._get_icloud_node(paths[0])
             if parent is None:
                 parent = self.drive.root
-            self.logger.debug(f"CREATED  folder {paths[1]} in parent {parent.name}")
-            self.drive.create_folders(parent.data['drivewsid'], paths[1])
+            self.logger.info(f"creating folder {self._get_node_path_as_str(event.src_path, paths[1])}")
+            #self.logger.debug(f"CREATED  folder {paths[1]} in parent {parent.name}")
+            parent.mkdir(paths[1])
+            #self.drive.create_folders(parent.data['drivewsid'], paths[1])
             parent.reget_children()
 
         else:
             filename = os.path.split(event.src_path)[1]
-            self.logger.debug(f"CREATED  {event.src_path} file created {event}")
+            self.logger.debug(f"{event.event_type}: {event.src_path} file created {event}")
             obj = self._get_icloud_node(event.src_path)
             parent = self._get_icloud_parent(event.src_path)
             count = 0
             if obj is not None:
                 if self._need_to_upload(event.src_path, obj):
-                    self.logger.debug(f"CREATED  {event.src_path} needs to be uploaded/_need_to_upload")
+                    self.logger.debug(f"{event.event_type}: {event.src_path} needs to be uploaded/_need_to_upload")
                     obj.delete()
                     count = self._upload_file(os.path.split(event.src_path)[0], filename, parent, "on_created")
                     self._update_md5(event.src_path)
             else:
-                self.logger.debug(f"CREATED  {event.src_path} needs to be uploaded/created")
+                self.logger.debug(f"{event.event_type}: {event.src_path} needs to be uploaded/created")
                 count = self._upload_file(os.path.split(event.src_path)[0], filename, parent, "on_created")
                 self._update_md5(event.src_path)
             if count > 0 and parent is not None:
@@ -98,23 +99,24 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
     def on_deleted(self, event):
         self.setup()
         if event.is_directory:
-            self.logger.debug(f"DELETED  {event.src_path} directory deleted {event}")
+            self.logger.debug(f"{event.event_type}: {event.src_path} directory deleted {event}")
             obj = self._get_icloud_node(event.src_path)
             parent = self._get_icloud_parent(event.src_path)
             if obj is not None and obj is not self.drive.root:
+                self.logger.info(f"{event.event_type}: deleting folder {self._get_node_path_as_str(event.src_path, obj.name)}")
                 obj.delete()
-                self.logger.debug(f"DELETED  {obj.name}")
             elif obj == self.drive.root:
-                self.logger.warn(f"DELETED on_delete not deleting root iCloud Drive folder!")
+                self.logger.warn(f"{event.event_type}: on_delete not deleting root iCloud Drive folder!")
             if parent is not None:
                 parent.reget_children()
         else:
+            self.logger.debug(f"{event.event_type}: {event.src_path} file deleted {event}")
             obj = self._get_icloud_node(event.src_path)
             if obj is not None:
-                self.logger.debug(f"DELETED  {event.src_path} file needs to be deleted {event}")
+                self.logger.info(f"{event.event_type}: {event.src_path}")
                 obj.delete()
             else:
-                self.logger.debug(f"DELETED  {event.src_path} file does not need to be deleted {event}")
+                self.logger.debug(f"{event.event_type}: {event.src_path} file does not need to be deleted {event}")
             self.db.delete_asset(event.src_path)
             parent = self._get_icloud_parent(event.src_path)
             if parent is not None:
@@ -123,22 +125,23 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
     def on_modified(self, event):
         self.setup()
         if event.is_directory:
-            self.logger.debug(f"MODIFIED {event.src_path} directory modified {event}")
+            self.logger.debug(f"{event.event_type}: {event.src_path} directory modified {event}")
         else:
+            self.logger.debug(f"{event.event_type}: {event.src_path} file modified {event}")
             filename = os.path.split(event.src_path)[1]
             obj = self._get_icloud_node(event.src_path)
             parent = self._get_icloud_parent(event.src_path)
             count = 0
             if obj is not None:
                 if self._need_to_upload(event.src_path, obj):
-                    self.logger.debug(f"MODIFIED {event.src_path} needs to be uploaded/_need_to_upload")
+                    self.logger.debug(f"{event.event_type}: {event.src_path} needs to be uploaded/_need_to_upload")
                     obj.delete()
                     count = self._upload_file(os.path.split(event.src_path)[0], filename, parent, "on_modified")
                     self._update_md5(event.src_path)
                 else:
-                    self.logger.debug(f"MODIFIED {event.src_path} did not need to be uploaded")
+                    self.logger.debug(f"{event.event_type}: {event.src_path} did not need to be uploaded")
             else:
-                self.logger.debug(f"MODIFIED {event.src_path} needs to be uploaded/created")
+                self.logger.debug(f"{event.event_type}: {event.src_path} needs to be uploaded/created")
                 count = self._upload_file(os.path.split(event.src_path)[0], filename, parent, "on_modified")
                 self._update_md5(event.src_path)
             if count > 0 and parent is not None:
@@ -147,7 +150,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
     def on_moved(self, event):
         self.setup()
         if event.is_directory:
-            self.logger.debug(f"MOVED    {event.src_path} directory moved to {event.dest_path} {event}")
+            self.logger.debug(f"{event.event_type}: {event.src_path} directory moved to {event.dest_path} {event}")
             obj = self._get_icloud_node(event.src_path)
             if obj is not None:
                 src_parent_path = os.path.split(event.src_path)[0]
@@ -170,7 +173,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
 
         else:
             filename = os.path.split(event.dest_path)[1]
-            self.logger.debug(f"MOVED    {event.src_path} file moved to {event.dest_path} {event}")
+            self.logger.debug(f"{event.event_type}: {event.src_path} file moved to {event.dest_path} {event}")
             try:
                 obj = self._get_icloud_node(event.dest_path)
             except KeyError as ex:
@@ -182,12 +185,12 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             parent = self._get_icloud_parent(event.dest_path)
             if obj is not None:
                 if self._need_to_upload(event.dest_path, obj):
-                    self.logger.debug(f"MOVED    {event.dest_path} file needs to be uploaded/_need_to_upload {event}")
+                    self.logger.debug(f"{event.event_type}: {event.dest_path} file needs to be uploaded/_need_to_upload")
                     obj.delete()
                     count = self._upload_file(os.path.split(event.dest_path)[0], filename, parent, "on_moved")
                     self._update_md5(event.dest_path)
             else:
-                self.logger.debug(f"MOVED    {event.dest_path} file needs to be uploaded/created {event}")
+                self.logger.debug(f"{event.event_type}: {event.dest_path} file needs to be uploaded/created")
                 count = self._upload_file(os.path.split(event.dest_path)[0], filename, parent, "on_moved")
                 self._update_md5(event.dest_path)
             if count > 0 and parent is not None:
@@ -196,7 +199,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             try:
                 obj = self._get_icloud_node(event.src_path)
                 if obj is not None:
-                    self.logger.debug(f"MOVED    {event.src_path} file needs to be deleted {event}")
+                    self.logger.debug(f"{event.event_type}: {event.src_path} file needs to be deleted")
                     obj.delete()
                     self.db.delete_asset(event.src_path)
                 parent = self._get_icloud_parent(event.src_path)
@@ -211,9 +214,9 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         return
         self.setup()
         if event.is_directory:
-            self.logger.debug(f"CLOSED   {event.src_path} directory closed {event}")
+            self.logger.debug(f"{event.event_type}: {event.src_path} directory closed {event}")
         else:
-            self.logger.debug(f"CLOSED   {event.src_path} file closed {event}")
+            self.logger.debug(f"{event.event_type}: {event.src_path} file closed {event}")
 
     def _upload_file(self, base, file, parent, reason):
         cwd = os.getcwd()
@@ -227,7 +230,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             while retries < constants.DOWNLOAD_MEDIA_MAX_RETRIES:
                 try:
                     with open(file, 'rb') as f:
-                        self.logger.info(f"uploading {reason} {os.path.join(base,file)}")
+                        self.logger.info(f"uploading {os.path.join(base,file)} {reason}")
                         parent.upload(f, mtime=mtime, ctime=ctime)
                         break
                 except PyiCloudAPIResponseException as ex:
@@ -259,7 +262,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 folder = folder[f]
             except KeyError as ex:
                 self.logger.debug(f"_create_icloud_folders creating folder {f} in {folder.name}")
-                self.drive.create_folders(folder.data['drivewsid'], f)
+                folder.mkdir(f)
                 folder.reget_children()
 
     def _get_deepest_folder(self, path):
@@ -304,12 +307,16 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             return folder[filename]
         except KeyError as ex:
             return None # file does not exist in iCloud
-        
 
     def _get_icloud_folders(self, path):
-        """Return a list of folder names representing the path deeper that the root folder"""
+        """Return a list of folder names representing the path deeper than the root folder"""
         _ = os.path.split(path)
         return [a for a in _[0].split(os.sep) if a not in self.directory.split(os.sep)]
+
+    def _get_node_path_as_str(self, path, s):
+        icfs = self._get_icloud_folders(path)
+        icfs.append(s)
+        return ":".join(icfs)
 
     def _need_to_upload(self, path, obj):
         try:
@@ -325,7 +332,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             if os.path.getsize(path) == 0 and obj.size is None:
                 return False
             
-            self.logger.info(f"skipping upload: {path}")
+            self.logger.debug(f"skipping upload: {path}")
         except FileNotFoundError as ex:
             self.logger.debug("caught file not found exception in _need_to_upload()")
 
@@ -362,17 +369,21 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             self.logger.debug(f"{path} size: {os.path.getsize(path)} {obj.size} date: {mt} = {obj.date_modified}")
 
     def _update_md5(self, path):
-        with open(path, 'rb') as f:
-            data = f.read()    
-        md5 = hashlib.md5(data).hexdigest()
-        size = os.path.getsize(path)
-        ctime = os.path.getctime(path)
-        mtime = os.path.getmtime(path)
-        _, ext = os.path.splitext(path)
-        filename = os.path.split(path)[1]
-        parent = self._get_icloud_parent(path)
-        self.logger.debug(f"updating {path} md5 {md5}")
-        self.db.upsert_asset(filename, parent.name, size, ctime, mtime, ext, path, md5)
+        try:
+            with open(path, 'rb') as f:
+                data = f.read()    
+            md5 = hashlib.md5(data).hexdigest()
+            size = os.path.getsize(path)
+            ctime = os.path.getctime(path)
+            mtime = os.path.getmtime(path)
+            _, ext = os.path.splitext(path)
+            filename = os.path.split(path)[1]
+            parent = self._get_icloud_parent(path)
+            self.logger.debug(f"updating {path} md5 {md5}")
+            self.db.upsert_asset(filename, parent.name, size, ctime, mtime, ext, path, md5)
+        except FileNotFoundError as ex:
+            self.logger.debug("caught file not found exception in _need_to_upload()")
+
 
 
     def _recurse_icloud_drive(self, folder, directory):
@@ -398,7 +409,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                             if chunk:
                                 f.write(chunk)
                                 f.flush()
-                        # file timestamps from DriveService are represented in UTC and rounded to nearest second
+                        # file timestamps from DriveService are in UTC and rounded to nearest second by Apple (◔_◔)
                         dt = child.date_modified
                         epoch_seconds = calendar.timegm(dt.timetuple())
                         os.utime(path, (epoch_seconds, epoch_seconds))
@@ -429,7 +440,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                     folder = parent[dir]
                 except KeyError:
                     self.logger.info(f"creating folder {parent.data.get('parentId', 'FOLDER::com.apple.CloudDocs::root')}::{parent.name}/{dir} in iCloud")
-                    self.drive.create_folders(parent.data['drivewsid'], dir)
+                    parent.mkdir(dir)
                     reget_children = True
             
             if reget_children:
