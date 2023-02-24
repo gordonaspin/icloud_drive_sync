@@ -523,6 +523,7 @@ def main(
     logger.info(f"directory: {directory}")
     logger.info(f"username: {username}")
     logger.info(f"cookie_directory: {cookie_directory}")
+    logger.info(f"sync: {sync}")
     logger.info(f"smtp_username: {smtp_username}")
     logger.info(f"smtp_password: {smtp_password}")
     logger.info(f"smtp_host: {smtp_host}")
