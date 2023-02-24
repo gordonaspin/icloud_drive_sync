@@ -308,19 +308,23 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         return [a for a in _[0].split(os.sep) if a not in self.directory.split(os.sep)]
 
     def _need_to_upload(self, path, obj):
-        if obj.size is not None and os.path.getsize(path) != obj.size:
-            self.logger.warn(f"size difference: {path} {os.path.getsize(path)} {obj.name} {obj.size}")
+        try:
+            if obj.size is not None and os.path.getsize(path) != obj.size:
+                self.logger.warn(f"size difference: {path} {os.path.getsize(path)} {obj.name} {obj.size}")
 
-        mt = self._round_seconds(datetime.utcfromtimestamp(os.path.getmtime(path)))
-        self._log_mtime_diff(mt, path, obj)
+            mt = self._round_seconds(datetime.utcfromtimestamp(os.path.getmtime(path)))
+            self._log_mtime_diff(mt, path, obj)
 
-        if mt > obj.date_modified:
-            return True
+            if mt > obj.date_modified:
+                return True
 
-        if os.path.getsize(path) == 0 and obj.size is None:
-            return False
-        
-        self.logger.info(f"skipping upload: {path}")
+            if os.path.getsize(path) == 0 and obj.size is None:
+                return False
+            
+            self.logger.info(f"skipping upload: {path}")
+        except FileNotFoundError as ex:
+            self.logger.debug("caught file not found exception in _need_to_upload()")
+            
         return False
 
     def _need_to_download(self, path, obj):
