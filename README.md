@@ -32,8 +32,7 @@ pip install .
 [//]: # (This is now only a copy&paste from --help output)
 
 ``` plain
-$ python icloudds.py -h
-Usage: icloudds.py <options>
+$ python icloudds.py -hUsage: icloudds <options>
 
   Synchronize local folder with iCloud Drive and watch for file system changes
 
@@ -46,8 +45,11 @@ Options:
   --cookie-directory </cookie/directory>
                                   Directory to store cookies for
                                   authentication (default: ~/.pyicloud)
-  --sync                          Runs an initial scan of iCloud Drive and
-                                  local filesystem
+  --sync                          Runs an initial download of iCloud Drive and
+                                  upload from local filesystem
+  --resync-period <resync_period>
+                                  Re-sync to/from iCloud Drive every x minutes
+                                  [x>=0]
   --smtp-username <smtp_username>
                                   Your SMTP username, for sending email
                                   notifications when two-step authentication
