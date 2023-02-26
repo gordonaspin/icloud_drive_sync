@@ -7,13 +7,12 @@
 iCloud Drive Sync's basic operation is as follows:
 1. Download changes from iCloud Drive to your local filesystem
 2. Upload files from your local file system to iCloud Drive
-3. Monitor local file system for changes and apply to iCloud Drive
+3. Monitor local file system for changes and apply to iCloud Drive, then repeat from step 1 every --resync-period minutes
 
 iCloud Drive Sync first connects to the iCloud service and begins walking the folder structure in iCloud Drive. It creates local folders under the --directory you provide, if needed and downloads
 files that have a modification date newer than those that exist. If the file does not exist locally, it is downloaded and its modification time is set to that of the iCloud Drive item. When complete,
 iCloud Drive Sync then walks the directory structure under --directory and uploads files that are newer or don't exist in iCloud, including directories. When the upload phase is complete,
-iCloud Drive Sync watches the local filesystem for changes and makes the corresponding add/delete/upload to iCloud Drive. iCloud Drive Sync does not monitor your iCloud Drive to download changes
-from there. I have not figured out if that is possible in an elegant way yet.
+iCloud Drive Sync watches the local filesystem for changes and makes the corresponding add/delete/upload to iCloud Drive. iCloud Drive Sync does not monitor your iCloud Drive to download changes, but does loop every --resync-period minutes effectively brute-forcing a sync to and from iCloud Drive.
 
 ## Install
 `icloudds` depends on the python pyicloud library. 
