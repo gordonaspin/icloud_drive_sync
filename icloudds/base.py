@@ -488,6 +488,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("-p", "--password",      help="Your iCloud password (default: use PyiCloud keyring or prompt for password)", metavar="<password>")
 @click.option("--cookie-directory",    help="Directory to store cookies for authentication (default: ~/.pyicloud)", metavar="</cookie/directory>", default="~/.pyicloud")
 @click.option("--sync",                help="Runs an initial download of iCloud Drive and upload from local filesystem", is_flag=True, default=False)
+@click.option("--resync-period",       help="Re-sync to/from iCloud Drive every x minutes", metavar="<resync_period>", type=click.IntRange(0), default=constants.SYNC_SLEEP_TIME)
 @click.option("--smtp-username",       help="Your SMTP username, for sending email notifications when two-step authentication expires.", metavar="<smtp_username>")
 @click.option("--smtp-password",       help="Your SMTP password, for sending email notifications when two-step authentication expires.", metavar="<smtp_password>")
 @click.option("--smtp-host",           help="Your SMTP server host. Defaults to: smtp.gmail.com", metavar="<smtp_host>", default="smtp.gmail.com")
@@ -508,6 +509,7 @@ def main(
         password,
         cookie_directory,
         sync,
+        resync_period,
         smtp_username,
         smtp_password,
         smtp_host,
@@ -535,6 +537,7 @@ def main(
     logger.info(f"username: {username}")
     logger.info(f"cookie_directory: {cookie_directory}")
     logger.info(f"sync: {sync}")
+    logger.info(f"re-sync period: {resync_period}")
     logger.info(f"smtp_username: {smtp_username}")
     logger.info(f"smtp_password: {smtp_password}")
     logger.info(f"smtp_host: {smtp_host}")
@@ -550,50 +553,56 @@ def main(
         print('--directory is required')
         sys.exit(constants.ExitCode.EXIT_FAILED_MISSING_COMMAND.value)
 
-    database.setup_database(directory)
-    setup_database_logger()
-    
-    raise_authorization_exception = (
-        smtp_username is not None
-        or notification_email is not None
-        or notification_script is not None
-        or not sys.stdout.isatty()
-    )
+    icloud = None
+    while True:
+        database.setup_database(directory)
+        setup_database_logger()
+        
+        raise_authorization_exception = (
+            smtp_username is not None
+            or notification_email is not None
+            or notification_script is not None
+            or not sys.stdout.isatty()
+        )
 
-    try:
-        logger.debug("connecting to iCloudService...")
-        icloud = authenticate(username, password, cookie_directory, raise_authorization_exception, client_id=os.environ.get("CLIENT_ID"), unverified_https=unverified_https)
-    except PyiCloud2SARequiredException as ex:
-        if notification_script is not None:
-            logger.debug(f"executing notification script {notification_script}")
-            subprocess.call([notification_script])
-        if smtp_username is not None or notification_email is not None:
-            logger.debug(f"sending 2sa email notification")
-            send_2sa_notification(smtp_username, smtp_password, smtp_host, smtp_port, smtp_no_tls, notification_email)
-        logger.error(ex)
-        sys.exit(constants.ExitCode.EXIT_FAILED_2FA_REQUIRED.value)
-    except PyiCloudFailedLoginException as ex:
-        logger.error(ex)
-        sys.exit(constants.ExitCode.EXIT_FAILED_LOGIN.value)
+        if icloud == None:
+            try:
+                logger.debug("connecting to iCloudService...")
+                icloud = authenticate(username, password, cookie_directory, raise_authorization_exception, client_id=os.environ.get("CLIENT_ID"), unverified_https=unverified_https)
+            except PyiCloud2SARequiredException as ex:
+                if notification_script is not None:
+                    logger.debug(f"executing notification script {notification_script}")
+                    subprocess.call([notification_script])
+                if smtp_username is not None or notification_email is not None:
+                    logger.debug(f"sending 2sa email notification")
+                    send_2sa_notification(smtp_username, smtp_password, smtp_host, smtp_port, smtp_no_tls, notification_email)
+                logger.error(ex)
+                sys.exit(constants.ExitCode.EXIT_FAILED_2FA_REQUIRED.value)
+            except PyiCloudFailedLoginException as ex:
+                logger.error(ex)
+                sys.exit(constants.ExitCode.EXIT_FAILED_LOGIN.value)
 
 
-    try:
-        handler = iCloudDriveHandler(icloud.drive, directory, log_level)
-        handler.sync_iCloudDrive(sync)
-        logger.info("watching for filesystem change events...")
-        observer = Observer()
-        observer.schedule(handler, path=directory, recursive=True)
-        observer.start()
         try:
-            while True:
-                time.sleep(1)
-        finally:
-            observer.stop()
-            observer.join()
+            handler = iCloudDriveHandler(icloud.drive, directory, log_level)
+            handler.sync_iCloudDrive(sync)
+            logger.info(f"watching for filesystem change events, will resync in {resync_period} minutes...")
+            observer = Observer()
+            observer.schedule(handler, path=directory, recursive=True)
+            observer.start()
+            try:
+                while True:
+                    time.sleep(resync_period*60)
+                    sync = True
+                    break;
 
-    except PyiCloudAPIResponseException as ex:
-        # For later: come up with a nicer message to the user. For now take the
-        # exception text
-        print(ex)
-        sys.exit(constants.ExitCode.EXIT_FAILED_CLOUD_API.value)
+            finally:
+                observer.stop()
+                observer.join()
+
+        except PyiCloudAPIResponseException as ex:
+            # For later: come up with a nicer message to the user. For now take the
+            # exception text
+            print(ex)
+            sys.exit(constants.ExitCode.EXIT_FAILED_CLOUD_API.value)
 
