@@ -21,6 +21,10 @@ RUN set -xe \
   && icloudds -h \
   && rm -rf /tmp/*.whl
 
+ARG TZ="America/New_York"
+RUN cp /usr/share/zoneinfo/$TZ /etc/localtime
+ENV TZ=${TZ}
+
 ARG USER_ID
 RUN adduser --disabled-password --gecos '' -uid $USER_ID docker
 USER docker
