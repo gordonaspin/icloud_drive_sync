@@ -86,7 +86,8 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             if obj is not None:
                 if self._need_to_upload(event.src_path, obj):
                     self.logger.debug(f"{event.event_type}: {event.src_path} needs to be uploaded/_need_to_upload")
-                    obj.delete()
+                    retcode = obj.delete()
+                    self.logger.debug(f"on_created, delete {obj.name} returned {retcode}")
                     count = self._upload_file(os.path.split(event.src_path)[0], filename, parent, "on_created")
                     self._update_md5(event.src_path)
             else:
@@ -104,7 +105,8 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             parent = self._get_icloud_parent(event.src_path)
             if obj is not None and obj is not self.drive.root:
                 self.logger.info(f"{event.event_type}: deleting folder {self._get_node_path_as_str(event.src_path, obj.name)}")
-                obj.delete()
+                retcode = obj.delete()
+                self.logger.debug(f"on_deleted (directory), delete {obj.name} returned {retcode}")
             elif obj == self.drive.root:
                 self.logger.warn(f"{event.event_type}: on_delete not deleting root iCloud Drive folder!")
             if parent is not None:
@@ -114,7 +116,8 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             obj = self._get_icloud_node(event.src_path)
             if obj is not None:
                 self.logger.info(f"{event.event_type}: {event.src_path}")
-                obj.delete()
+                retcode = obj.delete()
+                self.logger.debug(f"on_deleted (file), delete {obj.name} returned {retcode}")
             else:
                 self.logger.debug(f"{event.event_type}: {event.src_path} file does not need to be deleted {event}")
             self.db.delete_asset(event.src_path)
@@ -135,7 +138,8 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             if obj is not None:
                 if self._need_to_upload(event.src_path, obj):
                     self.logger.debug(f"{event.event_type}: {event.src_path} needs to be uploaded/_need_to_upload")
-                    obj.delete()
+                    retcode = obj.delete()
+                    self.logger.debug(f"on_modified (file), delete {obj.name} returned {retcode}")
                     count = self._upload_file(os.path.split(event.src_path)[0], filename, parent, "on_modified")
                     self._update_md5(event.src_path)
                 else:
@@ -167,7 +171,8 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                     obj.rename(os.path.split(event.dest_path)[1])
                 else:
                     if obj != self.drive.root:
-                        obj.delete()
+                        retcode = obj.delete()
+                        self.logger.debug(f"on_moved (directory), delete {obj.name} returned {retcode}")
                     dst_parent.reget_children()
                 src_parent.reget_children()
 
@@ -186,7 +191,8 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             if obj is not None:
                 if self._need_to_upload(event.dest_path, obj):
                     self.logger.debug(f"{event.event_type}: {event.dest_path} file needs to be uploaded/_need_to_upload")
-                    obj.delete()
+                    retcode = obj.delete()
+                    self.logger.debug(f"on_moved (file destination), delete {obj.name} returned {retcode}")
                     count = self._upload_file(os.path.split(event.dest_path)[0], filename, parent, "on_moved")
                     self._update_md5(event.dest_path)
             else:
@@ -200,7 +206,9 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 obj = self._get_icloud_node(event.src_path)
                 if obj is not None:
                     self.logger.debug(f"{event.event_type}: {event.src_path} file needs to be deleted")
-                    obj.delete()
+                    retcode = obj.delete()
+                    self.logger.debug(f"on_moved (file source), delete {obj.name} returned {retcode}")
+
                     self.db.delete_asset(event.src_path)
                 parent = self._get_icloud_parent(event.src_path)
                 if parent is not None:
@@ -240,14 +248,18 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
 
             os.chdir(cwd)
             if retries < constants.DOWNLOAD_MEDIA_MAX_RETRIES:
+                self.logger.debug(f"upload of {os.path.join(base,file)} {reason} returning 1")
                 return 1
             else:
+                self.logger.debug(f"upload of {os.path.join(base,file)} {reason} returning 0")
                 return 0
         except FileNotFoundError as ex:
+            self.logger.debug(f"FileNotFound exception in upload of {os.path.join(base,file)} {reason}")
             # caused by temporary files, e.g. when using rsync
             pass
         except Exception as ex:
             self.logger.warn(f"_upload_file exception {ex}")
+        self.logger.debug(f"failed upload of {os.path.join(base,file)} {reason} returning 0")
         return 0
 
     def _create_icloud_folders(self, path):
@@ -450,7 +462,8 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 try:
                     node = parent[filename]
                     if self._need_to_upload(os.path.join(base, filename), parent[filename]):
-                        node.delete()
+                        retcode = node.delete()
+                        self.logger.debug(f"_walk_local_drive, delete {node.name} returned {retcode}")
                         files_uploaded = files_uploaded + self._upload_file(base, filename, parent, "_walk_local_drive/local is newer")
                     self._update_md5(os.path.join(base, filename))
 

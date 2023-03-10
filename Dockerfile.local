@@ -15,11 +15,10 @@ COPY dist/* /tmp/
 RUN set -xe \
   && pip install wheel==0.35.1 \
   && pip install /tmp/pyicloud-${PYICLOUD_VERSION}-py2.py3-none-any.whl \
-  && pip install /tmp/icloudds-${ICLOUDDS_VERSION}-py3-none-any.whl \
+  && pip install /tmp/icloudds-${ICLOUDDS_VERSION}-py2.py3-none-any.whl \
   && pip list \
   && icloud -h \
-  && icloudds -h \
-  && rm -rf /tmp/*.whl
+  && icloudds -h 
 
 ARG TZ="America/New_York"
 RUN cp /usr/share/zoneinfo/$TZ /etc/localtime
