@@ -1,10 +1,10 @@
 # This image is mainly used for development and testing
 
-FROM python:latest
+FROM python:3.10-alpine
 
 WORKDIR /tmp
 
-RUN apt-get update && apt-get install -y tzdata bash 
+RUN apk add tzdata bash git
 RUN python -m pip install --upgrade pip
 RUN git clone https://github.com/gordonaspin/icloud_drive_sync.git
 RUN git clone https://github.com/gordonaspin/pyicloud.git
@@ -27,6 +27,6 @@ RUN cp /usr/share/zoneinfo/$TZ /etc/localtime
 ENV TZ=${TZ}
 
 ARG USER_ID
-RUN adduser --disabled-password --gecos '' -uid $USER_ID docker
+RUN adduser --disabled-password --gecos '' --uid $USER_ID docker
 USER docker
 ENTRYPOINT [ "icloudds", "-d", "/drive", "--cookie-directory", "/cookies" ]

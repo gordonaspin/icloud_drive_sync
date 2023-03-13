@@ -1,7 +1,9 @@
-FROM python:latest
+FROM python:3.10-alpine as base
+
+FROM base as builder
 
 #RUN set -xe
-RUN apt-get update && apt-get install -y tzdata bash vim
+RUN apk add tzdata bash vim
 RUN python3 -m ensurepip
     #rm -r /usr/lib/python*/ensurepip && \
 RUN pip3 install --upgrade pip setuptools
@@ -25,6 +27,6 @@ RUN cp /usr/share/zoneinfo/$TZ /etc/localtime
 ENV TZ=${TZ}
 
 ARG USER_ID
-RUN adduser --disabled-password --gecos '' -uid $USER_ID docker
+RUN adduser --disabled-password --gecos '' --uid $USER_ID docker
 USER docker
 ENTRYPOINT [ "icloudds", "-d", "/drive", "--cookie-directory", "/cookies" ]
