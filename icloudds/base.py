@@ -618,7 +618,7 @@ def main(
             handler = iCloudDriveHandler(icloud.drive, directory, log_level)
             logger.info(f"sync is {sync}")
             handler.sync_iCloudDrive(sync)
-            logger.info(f"watching for filesystem change events, {periods} periods, will sleep for {sleep_period} minutes...")
+            logger.info(f"watching for filesystem change events, {periods}/{resync_period} minutes, will sleep for {sleep_period} minutes...")
             observer = Observer()
             observer.schedule(handler, path=directory, recursive=True)
             observer.start()
