@@ -376,7 +376,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         if os.path.getsize(path) == 0 and obj.size is None:
             return False
 
-        self.logger.info(f"skipping download: {path[len(self.directory)+1:]}")
+        self.logger.debug(f"skipping download: {path[len(self.directory)+1:]}")
         return False
 
     def _round_seconds(self, obj: datetime) -> datetime:
@@ -473,6 +473,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 self.logger.debug(f"getting children of {parent.name} in _walk_local_drive")
                 parent.reget_children()
 
+            self.logger.info(f"recursing local folder {os.path.relpath(base, self.directory)}")
             for filename in files:
                 try:
                     node = parent[filename]
@@ -515,7 +516,8 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("-u", "--username",      help="Your iCloud username or email address", metavar="<username>")
 @click.option("-p", "--password",      help="Your iCloud password (default: use PyiCloud keyring or prompt for password)", metavar="<password>")
 @click.option("--cookie-directory",    help="Directory to store cookies for authentication (default: ~/.pyicloud)", metavar="</cookie/directory>", default="~/.pyicloud")
-@click.option("--resync-period",       help="Re-sync to/from iCloud Drive every x minutes", metavar="<resync_period>", type=click.IntRange(0), default=constants.SYNC_SLEEP_TIME_MINUTES)
+@click.option("--sleep-period",        help="Sleep period before checking if file system is dirty", metavar="<sleep_period>", type=click.IntRange(0), default=constants.SLEEP_PERIOD_MINUTES)
+@click.option("--resync-period",       help="Resync to/from iCloud Drive every x minutes", metavar="<resync_period>", type=click.IntRange(0), default=constants.RESYNC_PERIOD_MINUTES)
 @click.option("--smtp-username",       help="Your SMTP username, for sending email notifications when two-step authentication expires.", metavar="<smtp_username>")
 @click.option("--smtp-password",       help="Your SMTP password, for sending email notifications when two-step authentication expires.", metavar="<smtp_password>")
 @click.option("--smtp-host",           help="Your SMTP server host. Defaults to: smtp.gmail.com", metavar="<smtp_host>", default="smtp.gmail.com")
@@ -535,6 +537,7 @@ def main(
         username,
         password,
         cookie_directory,
+        sleep_period,
         resync_period,
         smtp_username,
         smtp_password,
@@ -562,7 +565,8 @@ def main(
     logger.info(f"directory: {directory}")
     logger.info(f"username: {username}")
     logger.info(f"cookie_directory: {cookie_directory}")
-    logger.info(f"re-sync period: {resync_period}")
+    logger.info(f"sleep_period: {sleep_period}")
+    logger.info(f"resync_period: {resync_period}")
     logger.info(f"smtp_username: {smtp_username}")
     logger.info(f"smtp_password: {smtp_password}")
     logger.info(f"smtp_host: {smtp_host}")
@@ -580,6 +584,7 @@ def main(
 
     icloud = None
     sync = True
+    periods = 0
     while True:
         database.setup_database(directory)
         setup_database_logger()
@@ -613,14 +618,21 @@ def main(
             handler = iCloudDriveHandler(icloud.drive, directory, log_level)
             logger.info(f"sync is {sync}")
             handler.sync_iCloudDrive(sync)
-            logger.info(f"watching for filesystem change events, will resync in {resync_period} minutes...")
+            logger.info(f"watching for filesystem change events, {periods} periods, will sleep for {sleep_period} minutes...")
             observer = Observer()
             observer.schedule(handler, path=directory, recursive=True)
             observer.start()
             try:
                 while True:
-                    time.sleep(resync_period*60)
-                    sync = handler.is_dirty
+                    time.sleep(sleep_period*60)
+                    sync = False
+                    periods = periods + sleep_period
+                    # If the file-system changed while sleeping, set sync to true
+                    if handler.is_dirty:
+                        sync = True
+                    elif periods >= resync_period:
+                        sync = True
+                        periods = 0
                     break;
 
             finally:
