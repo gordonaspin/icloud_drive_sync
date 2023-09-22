@@ -419,12 +419,15 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         children = folder.get_children()
         for child in children:
             if child.type != "file":
-                self.logger.info(f"recursing iCloud Drive folder {self._get_folder_path_as_str(directory, child.name)}")
-                path = os.path.join(directory, child.name)
-                if not os.path.exists(path):
-                    self.logger.info(f"creating local directory {path[len(self.directory)+1:]}")
-                    os.makedirs(path)
-                files_downloaded = files_downloaded + self._recurse_icloud_drive(child, path)
+                if child.name.startswith('.com-apple-bird'):
+                    self.logger.info(f"skipping {child.name} iCloud Drive folder")
+                else:
+                    self.logger.info(f"recursing iCloud Drive folder {self._get_folder_path_as_str(directory, child.name)}")
+                    path = os.path.join(directory, child.name)
+                    if not os.path.exists(path):
+                        self.logger.info(f"creating local directory {path[len(self.directory)+1:]}")
+                        os.makedirs(path)
+                    files_downloaded = files_downloaded + self._recurse_icloud_drive(child, path)
             else:
                 path = os.path.join(directory, child.name)
                 if not os.path.exists(path) or self._need_to_download(path, child):
