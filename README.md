@@ -12,12 +12,16 @@ iCloud Drive Sync's basic operation is as follows:
 iCloud Drive Sync first connects to the iCloud service and begins walking the folder structure in iCloud Drive. It creates local folders under the --directory you provide, if needed and downloads
 files that have a modification date newer than those that exist. If the file does not exist locally, it is downloaded and its modification time is set to that of the iCloud Drive item. When complete,
 iCloud Drive Sync then walks the directory structure under --directory and uploads files that are newer or don't exist in iCloud, including directories. When the upload phase is complete,
-iCloud Drive Sync watches the local filesystem for changes and makes the corresponding add/delete/upload to iCloud Drive. iCloud Drive Sync does not monitor your iCloud Drive to download changes, but does loop every --resync-period minutes effectively brute-forcing a sync to and from iCloud Drive.
+iCloud Drive Sync watches the local filesystem for changes and makes the corresponding add/delete/upload to iCloud Drive. If you delete a local directory and all its children, every filesystem event
+translates to a webservice call to delete the object, followed by a webservice call to update the parent folder's child objects, so deleting can be slow.
+
+iCloud Drive Sync does not monitor your iCloud Drive to download changes, but does loop every --resync-period minutes effectively brute-forcing a sync to and from iCloud Drive.
 
 ## Install
-`icloudds` depends on the python pyicloud library. 
+Do not use the `pyicloud` Python package that can be installed using `pip`.
 
-`pyicloud` is a Python package that can be installed using `pip`, but it's borked as it only retrieves the first 200 albums in your iCloud library. Use my forked pyicloud implementation https://github.com/gordonaspin/pyicloud:
+`icloudds` depends on my forked version of python pyicloud library implementation https://github.com/gordonaspin/pyicloud. My forked implementation resolves
+a retrieval limit of 200 albums (in Photos) and has added features to properly set timestamps of objects uploaded to iCloud Drive.
 
 ``` sh
 git clone https://github.com/gordonaspin/pyicloud
@@ -34,50 +38,51 @@ pip install .
 ``` plain
 $ python icloudds.py -h
 
-Usage: icloudds <options>
+Usage: icloudds.py <options>
 
-Synchronize local folder with iCloud Drive and watch for file system changes
+  Synchronize local folder with iCloud Drive and watch for file system changes
 
- Options:
-   -d, --directory <directory>     Local directory that should be used for
-                                   download
-   -u, --username <username>       Your iCloud username or email address
-   -p, --password <password>       Your iCloud password (default: use PyiCloud
-                                   keyring or prompt for password)
-   --cookie-directory </cookie/directory>
-                                   Directory to store cookies for
-                                   authentication (default: ~/.pyicloud)
-   --sleep-period <sleep_period>   Sleep period before checking if file system
-                                   is dirty  [x>=0]
-   --resync-period <resync_period>
-                                   Resync to/from iCloud Drive every x minutes
-                                   [x>=0]
-   --smtp-username <smtp_username>
-                                   Your SMTP username, for sending email
-                                   notifications when two-step authentication
-                                   expires.
-   --smtp-password <smtp_password>
-                                   Your SMTP password, for sending email
-                                   notifications when two-step authentication
-                                   expires.
-   --smtp-host <smtp_host>         Your SMTP server host. Defaults to:
-                                   smtp.gmail.com
-   --smtp-port <smtp_port>         Your SMTP server port. Default: 587 (Gmail)
-                                   [x>=0]
-   --smtp-no-tls                   Pass this flag to disable TLS for SMTP (TLS
-                                   is required for Gmail)
-   --notification-email <notification_email>
-                                   Email address where you would like to
-                                   receive email notifications. Default: SMTP
-                                   username
-   --notification-script PATH      Runs an external script when two factor
-                                   authentication expires. (path required:
-                                   /path/to/my/script.sh)
-   --log-level [debug|info|error]  Log level (default: debug)
-   --unverified-https              Overrides default https context with
-                                   unverified https context
-   --version                       Show the version and exit.
-   -h, --help                      Show this message and exit.```
+Options:
+  -d, --directory <directory>     Local directory that should be used for
+                                  download
+  -u, --username <username>       Your iCloud username or email address
+  -p, --password <password>       Your iCloud password (default: use PyiCloud
+                                  keyring or prompt for password)
+  --cookie-directory </cookie/directory>
+                                  Directory to store cookies for
+                                  authentication (default: ~/.pyicloud)
+  --sleep-period <sleep_period>   Sleep period before checking if file system
+                                  is dirty (default: 60 minutes)  [1<=x<=1440]
+  --resync-period <resync_period>
+                                  Resync to/from iCloud Drive every resync-
+                                  period minutes (default: 240 minutes)
+                                  [1<=x<=1440]
+  --smtp-username <smtp_username>
+                                  Your SMTP username, for sending email
+                                  notifications when two-step authentication
+                                  expires.
+  --smtp-password <smtp_password>
+                                  Your SMTP password, for sending email
+                                  notifications when two-step authentication
+                                  expires.
+  --smtp-host <smtp_host>         Your SMTP server host. Defaults to:
+                                  smtp.gmail.com
+  --smtp-port <smtp_port>         Your SMTP server port. Default: 587 (Gmail)
+                                  [x>=0]
+  --smtp-no-tls                   Pass this flag to disable TLS for SMTP (TLS
+                                  is required for Gmail)
+  --notification-email <notification_email>
+                                  Email address where you would like to
+                                  receive email notifications. Default: SMTP
+                                  username
+  --notification-script PATH      Runs an external script when two factor
+                                  authentication expires. (path required:
+                                  /path/to/my/script.sh)
+  --log-level [debug|info|error]  Log level (default: debug)
+  --unverified-https              Overrides default https context with
+                                  unverified https context
+  --version                       Show the version and exit.
+  -h, --help                      Show this message and exit.
 
 Example:
 
