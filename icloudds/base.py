@@ -174,9 +174,12 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 else:
                     if obj != self.drive.root:
                         retcode = obj.delete()
-                        self.logger.debug(f"on_moved (directory), delete {obj.name} returned {retcode}")
+                        self.logger.debug(f"on_moved (directory), delete folder {obj.name} in {src_parent.name} returned {retcode}")
+                    retcode = dst_parent.mkdir(obj.name)
+                    self.logger.debug(f"on_moved (directory), create folder {obj.name} in {dst_parent.name} returned {retcode}")
                     self.logger.debug(f"getting children of {dst_parent.name} in on_moved / destination directory")
                     dst_parent.reget_children()
+                    #self._walk_local_drive(self._get_icloud_node(event.dest_path), event.dest_path)
                 self.logger.debug(f"getting children of {src_parent.name} in on_moved / source directory")
                 src_parent.reget_children()
 
@@ -445,19 +448,19 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 self._update_md5(path)
         return files_downloaded
 
-    def _walk_local_drive(self):
+    def _walk_local_drive(self, parent_node, base_path):
         """Walk the local filesystem, create folders in iCloud corresponding the folders below
-        self.directory as needed. Upload files found to iCloud if the modified time is newer than
+        base_path as needed. Upload files found to iCloud if the modified time is newer than
         the DriveNode or if the DriveNode was not found"""
         files_uploaded = 0
-        dir_base = self.directory.split(os.sep)
-        for base, dirs, files in os.walk(self.directory):
+        dir_base = base_path.split(os.sep)
+        for base, dirs, files in os.walk(base_path):
             path = base.split(os.sep)
             path = [a for a in path if a not in dir_base]
             if (len(path) == 0):
-                parent = self.drive.root
+                parent = parent_node
             else:
-                parent = self.drive.root
+                parent = parent_node
                 for i in range(len(path)):
                     parent_name = path[i]
                     parent = parent[parent_name]
@@ -476,7 +479,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 self.logger.debug(f"getting children of {parent.name} in _walk_local_drive")
                 parent.reget_children()
 
-            self.logger.info(f"recursing local folder {os.path.relpath(base, self.directory)}")
+            self.logger.info(f"recursing local folder {os.path.relpath(base, base_path)}")
             for filename in files:
                 try:
                     node = parent[filename]
@@ -487,7 +490,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                     self._update_md5(os.path.join(base, filename))
 
                 except KeyError:
-                    self.logger.debug(f"{os.path.join(base, filename)[len(self.directory)+1:]} does not exist in iCloud")
+                    self.logger.debug(f"{os.path.join(base, filename)[len(base_path)+1:]} does not exist in iCloud")
                     _, db_file = os.path.split(database.DatabaseHandler.db_file)
                     if not filename == db_file:
                        files_uploaded = files_uploaded + self._upload_file(base, filename, parent,  "_walk_local_drive/new file")
@@ -503,7 +506,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             self.logger.info(f"syncing iCloud Drive to {self.directory} ...")
             downloaded = self._recurse_icloud_drive(self.drive.root, self.directory)
             self.logger.info(f"syncing {self.directory} to iCloud Drive ...")
-            uploaded = self._walk_local_drive()
+            uploaded = self._walk_local_drive(self.drive.root, self.directory)
             self.logger.info(f"{downloaded} files downloaded from iCloud Drive")
             self.logger.info(f"{uploaded} files uploaded to iCloud Drive")
             self.logger.info(f"completed in {datetime.now() - start}")
@@ -586,7 +589,7 @@ def main(
         sys.exit(constants.ExitCode.EXIT_FAILED_MISSING_COMMAND.value)
 
     icloud = None
-    sync = True
+    sync = False
     periods = 0
     while True:
         database.setup_database(directory)
