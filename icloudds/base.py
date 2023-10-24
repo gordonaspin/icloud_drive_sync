@@ -589,7 +589,7 @@ def main(
         sys.exit(constants.ExitCode.EXIT_FAILED_MISSING_COMMAND.value)
 
     icloud = None
-    sync = False
+    sync = True
     periods = 0
     while True:
         database.setup_database(directory)
