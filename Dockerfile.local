@@ -1,4 +1,4 @@
-FROM python:3.10-alpine as base
+FROM python:3.12-alpine as base
 
 FROM base as builder
 
@@ -10,14 +10,14 @@ RUN pip3 install --upgrade pip setuptools
 #    if [ ! -e /usr/bin/pip ]; then ln -s pip3 /usr/bin/pip ; fi && \
 #    if [[ ! -e /usr/bin/python ]]; then ln -sf /usr/bin/python3 /usr/bin/python; fi && \
 #    rm -r /root/.cache
-
+# pyicloud-1.0.0-py3-none-any.whl
 ARG ICLOUDDS_VERSION
 ARG PYICLOUD_VERSION
 COPY dist/* /tmp/
 RUN set -xe \
   && pip install wheel==0.35.1 \
-  && pip install /tmp/pyicloud-${PYICLOUD_VERSION}-py2.py3-none-any.whl \
-  && pip install /tmp/icloudds-${ICLOUDDS_VERSION}-py2.py3-none-any.whl \
+  && pip install /tmp/pyicloud-${PYICLOUD_VERSION}-py3-none-any.whl \
+  && pip install /tmp/icloudds-${ICLOUDDS_VERSION}-py3-none-any.whl \
   && pip list \
   && icloud -h \
   && icloudds -h 
