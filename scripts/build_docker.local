@@ -28,7 +28,7 @@ fi
 
 docker build \
   --platform ${platform} \
-  --progress plain \
+  --progress auto \
   --no-cache \
   -t "gordonaspin/icloudds:${ICLOUDDS_VERSION}-local" \
   -f "Dockerfile.local" \
