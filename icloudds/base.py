@@ -31,9 +31,10 @@ from icloudds.logger import setup_database_logger
 import icloudds.database as database
 
 class iCloudDriveHandler(PatternMatchingEventHandler):
-    def __init__(self, drive, directory, log_level):
+    def __init__(self, drive, directory, subroot, log_level):
         super().__init__(ignore_patterns={database.DatabaseHandler.db_base_name + "*", directory})
         self.drive = drive
+        self.subroot = drive[subroot] if subroot is not None else drive.root
         self.directory = directory
         self.log_level = log_level
         self.db = None
@@ -72,7 +73,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             paths = os.path.split(event.src_path)
             parent = self._get_icloud_node(paths[0])
             if parent is None:
-                parent = self.drive.root
+                parent = self.subroot
             self.logger.info(f"creating folder {self._get_node_path_as_str(event.src_path, paths[1])}")
             #self.logger.debug(f"CREATED  folder {paths[1]} in parent {parent.name}")
             parent.mkdir(paths[1])
@@ -105,11 +106,11 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             self.logger.debug(f"{event.event_type}: {event.src_path[len(self.directory)+1:]} directory deleted")
             obj = self._get_icloud_node(event.src_path)
             parent = self._get_icloud_parent(event.src_path)
-            if obj is not None and obj is not self.drive.root:
+            if obj is not None and obj is not self.subroot:
                 self.logger.info(f"{event.event_type}: deleting folder {self._get_node_path_as_str(event.src_path, obj.name)}")
                 retcode = obj.delete()
                 self.logger.debug(f"on_deleted (directory), delete {obj.name} returned {retcode}")
-            elif obj == self.drive.root:
+            elif obj == self.subroot:
                 self.logger.warn(f"{event.event_type}: on_delete not deleting root iCloud Drive folder!")
             if parent is not None:
                 self.logger.debug(f"getting children of {parent.name} in on_deleted / directory")
@@ -162,17 +163,17 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 src_parent_path = os.path.split(event.src_path)[0]
                 src_parent = self._get_icloud_node(src_parent_path)
                 if src_parent is None:
-                    src_parent = self.drive.root
+                    src_parent = self.subroot
 
                 dst_parent_path = os.path.split(event.dest_path)[0]
                 dst_parent = self._get_icloud_node(dst_parent_path)
                 if dst_parent is None:
-                    dst_parent = self.drive.root
+                    dst_parent = self.subroot
 
                 if src_parent_path == dst_parent_path:
                     obj.rename(os.path.split(event.dest_path)[1])
                 else:
-                    if obj != self.drive.root:
+                    if obj != self.subroot:
                         retcode = obj.delete()
                         self.logger.debug(f"on_moved (directory), delete folder {obj.name} in {src_parent.name} returned {retcode}")
                     retcode = dst_parent.mkdir(obj.name)
@@ -273,7 +274,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
 
     def _create_icloud_folders(self, path):
         """Create the iCloud Drive folder objects (as needed) represented by path"""
-        folder = self.drive.root
+        folder = self.subroot
         icfs = self._get_icloud_folders(path)
 
         # Walk the path and try accessing the child object. If KeyError exception, the
@@ -288,7 +289,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 folder.reget_children()
 
     def _get_deepest_folder(self, path):
-        folder = self.drive.root
+        folder = self.subroot
         icfs = self._get_icloud_folders(path)
         for f in icfs:
             try:
@@ -299,7 +300,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
 
     def _get_icloud_parent(self, path):
         """Return the DriveNode object that is the parent of the DriveNode object represented by path"""
-        folder = self.drive.root
+        folder = self.subroot
         icfs = self._get_icloud_folders(path)
 
         for f in icfs:
@@ -311,7 +312,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
 
     def _get_icloud_node(self, path):
         """Return the DriveNode object representing the given path, otherwise None"""
-        folder = self.drive.root
+        folder = self.subroot
         icfs = self._get_icloud_folders(path)
         filename = os.path.split(path)[1]
 
@@ -322,8 +323,8 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 folder = folder[f]
             except KeyError as ex:  # folder does not exist in iCloud
                 return None
-            
-        # folder is either self.drive.root, or the folder containing the item
+
+        # folder is either self.subroot, or the folder containing the item
         # if we get a KeyError exception the node does not exist (file)
         try:
             return folder[filename]
@@ -345,7 +346,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         path = path + os.sep
         path = path + s
         return path[1:]
-    
+
     def _need_to_upload(self, path, obj):
         try:
             if obj.size is not None and os.path.getsize(path) != obj.size:
@@ -359,7 +360,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
 
             if os.path.getsize(path) == 0 and obj.size is None:
                 return False
-            
+
             self.logger.debug(f"skipping upload: {path[len(self.directory)+1:]}")
         except FileNotFoundError as ex:
             self.logger.debug("caught file not found exception in _need_to_upload()")
@@ -399,7 +400,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
     def _update_md5(self, path):
         try:
             with open(path, 'rb') as f:
-                data = f.read()    
+                data = f.read()
             md5 = hashlib.md5(data).hexdigest()
             size = os.path.getsize(path)
             ctime = os.path.getctime(path)
@@ -473,7 +474,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                     self.logger.info(f"creating folder {parent.data.get('parentId', 'FOLDER::com.apple.CloudDocs::root')}::{parent.name}/{dir} in iCloud")
                     parent.mkdir(dir)
                     reget_children = True
-            
+
             # we made 1 or more new folders inside parent, so refresh parent's children nodes
             if reget_children:
                 self.logger.debug(f"getting children of {parent.name} in _walk_local_drive")
@@ -504,9 +505,9 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         start = datetime.now()
         if sync == True:
             self.logger.info(f"syncing iCloud Drive to {self.directory} ...")
-            downloaded = self._recurse_icloud_drive(self.drive.root, self.directory)
+            downloaded = self._recurse_icloud_drive(self.subroot, self.directory)
             self.logger.info(f"syncing {self.directory} to iCloud Drive ...")
-            uploaded = self._walk_local_drive(self.drive.root, self.directory)
+            uploaded = self._walk_local_drive(self.subroot, self.directory)
             self.logger.info(f"{downloaded} files downloaded from iCloud Drive")
             self.logger.info(f"{uploaded} files uploaded to iCloud Drive")
             self.logger.info(f"completed in {datetime.now() - start}")
@@ -522,6 +523,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("-u", "--username",      help="Your iCloud username or email address", metavar="<username>")
 @click.option("-p", "--password",      help="Your iCloud password (default: use PyiCloud keyring or prompt for password)", metavar="<password>")
 @click.option("--cookie-directory",    help="Directory to store cookies for authentication (default: ~/.pyicloud)", metavar="</cookie/directory>", default="~/.pyicloud")
+@click.option("--subroot", help="Folder within iCloud Drive to sync (i.e., exclude all other folders)", metavar="<subroot>", default=None)
 @click.option("--sleep-period",        help=f"Sleep period before checking if file system is dirty (default: {constants.SLEEP_PERIOD_MINUTES} minutes)", metavar="<sleep_period>", type=click.IntRange(1, 24*60), default=constants.SLEEP_PERIOD_MINUTES)
 @click.option("--resync-period",       help=f"Resync to/from iCloud Drive every resync-period minutes (default: {constants.RESYNC_PERIOD_MINUTES} minutes)", metavar="<resync_period>", type=click.IntRange(1, 24*60), default=constants.RESYNC_PERIOD_MINUTES)
 @click.option("--smtp-username",       help="Your SMTP username, for sending email notifications when two-step authentication expires.", metavar="<smtp_username>")
@@ -543,6 +545,7 @@ def main(
         username,
         password,
         cookie_directory,
+        subroot,
         sleep_period,
         resync_period,
         smtp_username,
@@ -582,7 +585,7 @@ def main(
     logger.info(f"log_level: {log_level}")
     logger.info(f"notification_script: {notification_script}")
     logger.info(f"unverified_https: {unverified_https}")
-        
+
     # check required directory param only if not list albums
     if not directory:
         print('--directory is required')
@@ -594,7 +597,7 @@ def main(
     while True:
         database.setup_database(directory)
         setup_database_logger()
-        
+
         raise_authorization_exception = (
             smtp_username is not None
             or notification_email is not None
@@ -621,7 +624,7 @@ def main(
 
 
         try:
-            handler = iCloudDriveHandler(icloud.drive, directory, log_level)
+            handler = iCloudDriveHandler(icloud.drive, directory, subroot, log_level)
             logger.info(f"sync is {sync}")
             handler.sync_iCloudDrive(sync)
             logger.info(f"watching for filesystem change events, {periods}/{resync_period} minutes, will sleep for {sleep_period} minutes...")
@@ -650,4 +653,3 @@ def main(
             # exception text
             print(ex)
             sys.exit(constants.ExitCode.EXIT_FAILED_CLOUD_API.value)
-
