@@ -435,17 +435,21 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 path = os.path.join(directory, child.name)
                 if not os.path.exists(path) or self._need_to_download(path, child):
                     self.logger.info(f"downloading {path[len(self.directory)+1:]}")
-                    with open(path, 'wb') as f:
-                        for chunk in child.open(stream=True).iter_content(chunk_size=constants.DOWNLOAD_MEDIA_CHUNK_SIZE):
-                            if chunk:
-                                f.write(chunk)
-                                f.flush()
+                    try:
+                        with open(path, 'wb') as f:
+                            for chunk in child.open(stream=True).iter_content(chunk_size=constants.DOWNLOAD_MEDIA_CHUNK_SIZE):
+                                if chunk:
+                                    f.write(chunk)
+                                    f.flush()
                         # file timestamps from DriveService are in UTC and rounded to nearest second by Apple (◔_◔)
-                        dt = child.date_modified
-                        epoch_seconds = calendar.timegm(dt.timetuple())
-                        os.utime(path, (epoch_seconds, epoch_seconds))
-                        files_downloaded + files_downloaded + 1
-                self._update_md5(path)
+                            dt = child.date_modified
+                            epoch_seconds = calendar.timegm(dt.timetuple())
+                            os.utime(path, (epoch_seconds, epoch_seconds))
+                            files_downloaded + files_downloaded + 1
+                    except PermissionError:
+                        self.logger.info(f"PermissionError downloading {path[len(self.directory)+1:]}")
+                    
+                    self._update_md5(path)
         return files_downloaded
 
     def _walk_local_drive(self, parent_node, base_path):
