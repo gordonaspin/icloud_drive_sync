@@ -16,3 +16,4 @@ htmlcov
 icloudds-latest-py2.py3-none-any.whl
 .venv
 venv
+testing/
