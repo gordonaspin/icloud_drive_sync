@@ -1,9 +1,9 @@
-FROM python:3.12-alpine as base
+FROM python:3.12-alpine AS base
 
-FROM base as builder
+FROM base AS builder
 
 #RUN set -xe
-RUN apk add tzdata bash vim
+RUN apk add tzdata bash vim git
 RUN python3 -m ensurepip
     #rm -r /usr/lib/python*/ensurepip && \
 RUN pip3 install --upgrade pip setuptools
