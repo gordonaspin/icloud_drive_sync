@@ -17,3 +17,9 @@ icloudds-latest-py2.py3-none-any.whl
 .venv
 venv
 testing/
+icloud_drive_sync.egg-info/dependency_links.txt
+icloud_drive_sync.egg-info/PKG-INFO
+icloud_drive_sync.egg-info/requires.txt
+icloud_drive_sync.egg-info/SOURCES.txt
+icloud_drive_sync.egg-info/top_level.txt
+.gitignore
