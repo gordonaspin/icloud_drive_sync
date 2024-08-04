@@ -567,7 +567,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
-@click.command(context_settings=CONTEXT_SETTINGS, options_metavar="<options>")
+@click.command(context_settings=CONTEXT_SETTINGS, options_metavar="<options>", no_args_is_help=True)
 # @click.argument(
 @click.option("-d", "--directory",     help="Local directory that should be used for download", type=click.Path(exists=True), metavar="<directory>")
 @click.option("-u", "--username",      help="Your iCloud username or email address", metavar="<username>")
