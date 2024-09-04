@@ -135,7 +135,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 self.logger.debug(f"{event.event_type}: {event.src_path[len(self.directory)+1:]} file does not need to be deleted")
             self.db.delete_asset(event.src_path)
             parent = self._get_icloud_parent(event.src_path)
-            if parent is not None:
+            if parent is not None and obj is not None:
                 self.logger.debug(f"getting children of {parent.name} in on_deleted / file")
                 parent.remove(obj)
                 #parent.get_children(True)
@@ -463,9 +463,9 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                         self.logger.info(f"creating local directory {path[len(self.directory)+1:]}")
                         os.makedirs(path)
                         folders_created = folders_created + 1
-                        folders_files = self._recurse_icloud_drive(child, path) #, files_downloaded, folders_created)
-                        folders_created = folders_created + folders_files[0]
-                        files_downloaded = files_downloaded + folders_files[1]
+                    folders_files = self._recurse_icloud_drive(child, path) #, files_downloaded, folders_created)
+                    folders_created = folders_created + folders_files[0]
+                    files_downloaded = files_downloaded + folders_files[1]
             else:
                 path = os.path.join(directory, child.name)
                 if not os.path.exists(path) or self._need_to_download(path, child):
