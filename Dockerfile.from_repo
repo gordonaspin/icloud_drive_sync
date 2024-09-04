@@ -7,20 +7,22 @@ WORKDIR /tmp
 RUN apk add tzdata bash git
 RUN python -m pip install --upgrade pip
 RUN pip install --upgrade virtualenv
+RUN pip install --upgrade setuptools
+RUN pip install --upgrade build
 
 RUN git clone https://github.com/gordonaspin/icloud_drive_sync.git
 RUN git clone https://github.com/gordonaspin/pyicloud.git
-
-RUN pip3 install -r icloud_drive_sync/requirements.txt
-RUN pip3 install -r pyicloud/requirements.txt
 
 WORKDIR /tmp/icloud_drive_sync
 RUN scripts/build
 WORKDIR /tmp/pyicloud
 RUN scripts/build
-
 RUN pip3 install /tmp/icloud_drive_sync/dist/*.whl
 RUN pip3 install /tmp/pyicloud/dist/*.whl
+RUN pip3 install -r /tmp/pyicloud/requirements.txt
+RUN pip3 install -r /tmp/icloud_drive_sync/requirements.txt
+
+
 RUN rm -rf /tmp/icloud_drive_sync
 RUN rm -rf /tmp/pyicloud
 
