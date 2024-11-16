@@ -265,9 +265,9 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
             self.logger.debug(f"{event.event_type}: {event.src_path} file closed")
 
     def _upload_file(self, base, file, parent, reason):
-        cwd = os.getcwd()
-        os.chdir(base)
         try:
+            cwd = os.getcwd()
+            os.chdir(base)
             size = os.path.getsize(file)
             filename, ext = os.path.splitext(file)
             mtime = os.path.getmtime(file)
@@ -295,7 +295,6 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                 return 0
         except FileNotFoundError as ex:
             self.logger.debug(f"FileNotFound exception in upload of {os.path.join(base,file)[len(self.directory)+1:]} {reason}")
-            # caused by temporary files, e.g. when using rsync
             pass
         except Exception as ex:
             self.logger.warn(f"_upload_file exception {ex}")
