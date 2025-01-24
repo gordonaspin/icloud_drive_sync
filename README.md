@@ -86,6 +86,8 @@ Options:
   --version                       Show the version and exit.
   -h, --help                      Show this message and exit.
 
+```
+
 Example:
 
 ``` sh
