@@ -38,7 +38,7 @@ pip install .
 ``` plain
 $ python icloudds.py -h
 
-Usage: icloudds.py <options>
+Usage: icloudds <options>
 
   Synchronize local folder with iCloud Drive and watch for file system changes
 
@@ -51,6 +51,8 @@ Options:
   --cookie-directory </cookie/directory>
                                   Directory to store cookies for
                                   authentication (default: ~/.pyicloud)
+  --pseudoroot <pseudoroot>       Folder within iCloud Drive to sync (i.e.,
+                                  exclude all other folders)
   --sleep-period <sleep_period>   Sleep period before checking if file system
                                   is dirty (default: 60 minutes)  [1<=x<=1440]
   --resync-period <resync_period>
