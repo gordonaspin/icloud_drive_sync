@@ -618,6 +618,11 @@ def main(
     elif log_level == "error":
         logger.setLevel(logging.ERROR)
 
+    # check required directory param only
+    if not directory or not username:
+        print('--directory and --username are required')
+        sys.exit(constants.ExitCode.EXIT_FAILED_MISSING_COMMAND.value)
+
     directory = os.path.abspath(directory)
 
     logger.info(f"directory: {directory}")
@@ -634,11 +639,6 @@ def main(
     logger.info(f"log_level: {log_level}")
     logger.info(f"notification_script: {notification_script}")
     logger.info(f"unverified_https: {unverified_https}")
-
-    # check required directory param only if not list albums
-    if not directory:
-        print('--directory is required')
-        sys.exit(constants.ExitCode.EXIT_FAILED_MISSING_COMMAND.value)
 
     icloud = None
     sync = True
