@@ -450,7 +450,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         files to the epoch seconds in UTC"""
         files_downloaded = 0
         folders_created = 0
-        children = folder.get_children()
+        children = folder.get_children(True)
         for child in children:
             if child.type != "file":
                 if child.name.startswith('.com-apple-bird'):
