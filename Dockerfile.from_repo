@@ -11,20 +11,22 @@ RUN pip install --upgrade setuptools
 RUN pip install --upgrade build
 
 RUN git clone https://github.com/gordonaspin/icloud_drive_sync.git
-RUN git clone https://github.com/timlaing/pyicloud.git
+#RUN git clone https://github.com/timlaing/pyicloud.git
 
 WORKDIR /tmp/icloud_drive_sync
 RUN scripts/build
-WORKDIR /tmp/pyicloud
-RUN scripts/build.sh
+#WORKDIR /tmp/pyicloud
+#RUN scripts/build.sh
 RUN pip3 install /tmp/icloud_drive_sync/dist/*.whl
-RUN pip3 install /tmp/pyicloud/dist/*.whl
-RUN pip3 install -r /tmp/pyicloud/requirements.txt
+#RUN pip3 install /tmp/pyicloud/dist/*.whl
+RUN pip3 install git+https://github.com/timlaing/pyicloud.git
+#RUN pip3 install -r /tmp/pyicloud/requirements.txt
 RUN pip3 install -r /tmp/icloud_drive_sync/requirements.txt
-
+RUN icloud -h
+RUN icloudds -h 
 
 RUN rm -rf /tmp/icloud_drive_sync
-RUN rm -rf /tmp/pyicloud
+#RUN rm -rf /tmp/pyicloud
 
 ARG TZ="America/New_York"
 RUN cp /usr/share/zoneinfo/$TZ /etc/localtime
