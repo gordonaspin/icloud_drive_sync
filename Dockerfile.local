@@ -14,9 +14,10 @@ RUN pip3 install --upgrade pip setuptools
 ARG ICLOUDDS_VERSION
 ARG PYICLOUD_VERSION
 COPY dist/* /tmp/
+#  && pip install /tmp/pyicloud-${PYICLOUD_VERSION}-py3-none-any.whl \
 RUN set -xe \
   && pip install wheel==0.35.1 \
-  && pip install /tmp/pyicloud-${PYICLOUD_VERSION}-py3-none-any.whl \
+  && pip install git+https://github.com/timlaing/pyicloud.git \
   && pip install /tmp/icloudds-${ICLOUDDS_VERSION}-py3-none-any.whl \
   && pip list \
   && icloud -h \
