@@ -11,7 +11,8 @@ ROOT_DIR="$(realpath $(dirname "$0")/..)"
 echo $CURRENT_DIR
 echo $ROOT_DIR
 ICLOUDDS_VERSION="$(cat "$ROOT_DIR/pyproject.toml" | grep "version =" | cut -d'"' -f 2)"
-PYICLOUD_VERSION="$(cat "$ROOT_DIR/../pyicloud/setup.py" | grep "VERSION =" | cut -d'"' -f 2)"
+PYICLOUD_VERSION="$(cat "$ROOT_DIR/../pyicloud/pyicloud.egg-info/PKG-INFO"| awk '/^Version:/ {print $2}')"
+#PYICLOUD_VERSION="$(cat "$ROOT_DIR/../pyicloud/setup.py" | grep "VERSION =" | cut -d'"' -f 2)"
 cp $ROOT_DIR/../pyicloud/dist/*.whl dist/
 echo "Current icloudds version: ${ICLOUDDS_VERSION}"
 echo "Current pyicloud version: ${PYICLOUD_VERSION}"
@@ -28,7 +29,7 @@ fi
 
 docker build \
   --platform ${platform} \
-  --progress auto \
+  --progress plain \
   --no-cache \
   -t "gordonaspin/icloudds:${ICLOUDDS_VERSION}-local" \
   -f "Dockerfile.local" \

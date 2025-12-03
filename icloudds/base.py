@@ -529,7 +529,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                         retcode = node.delete()
                         self.logger.debug(f"_walk_local_drive, delete {node.name} returned {retcode}")
                         files_subtotal = files_subtotal + self._upload_file(base, filename, parent, "_walk_local_drive/local is newer")
-                    self._update_md5(os.path.join(base, filename))
+                        self._update_md5(os.path.join(base, filename))
 
                 except KeyError:
                     self.logger.debug(f"{os.path.join(base, filename)[len(base_path)+1:]} does not exist in iCloud")

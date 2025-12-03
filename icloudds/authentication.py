@@ -42,15 +42,46 @@ def authenticate(
                 
             if api.requires_2fa:
                 # fmt: off
-                print("\nTwo-factor (2FA) authentication required.")
                 # fmt: on
                 if raise_authorization_exception:
                     raise PyiCloud2SARequiredException(username)
+#---
+                security_key_names = api.security_key_names
+                if security_key_names:
+                    print(
+                        f"Security key confirmation is required. "
+                        f"Please plug in one of the following keys: {', '.join(security_key_names)}"
+                    )
+                    devices = api.fido2_devices
+                    print("Available FIDO2 devices:")
+                    for idx, dev in enumerate(devices, start=1):
+                        print(f"{idx}: {dev}")
 
-                code = input("\nPlease enter verification code: ")
-                if not api.validate_2fa_code(code):
-                    logger.debug("Failed to verify (2FA) verification code")
-                    sys.exit(constants.ExitCode.EXIT_FAILED_VERIFY_2FA_CODE.value)
+                    choice = click.prompt(
+                        "Select a FIDO2 device by number",
+                        type=click.IntRange(1, len(devices)),
+                        default=1,
+                    )
+                    selected_device = devices[choice - 1]
+                    print("Please confirm the action using the security key")
+                    api.confirm_security_key(selected_device)
+#---
+                else:
+                    print("\nTwo-factor (2FA) authentication required.")
+                    code = input("\nPlease enter verification code: ")
+                    result = api.validate_2fa_code(code)
+                    print(f"Code validation result: {result}")
+                    if not result:
+                        logger.debug(f"Failed to verify (2FA) verification code {result}")
+                        sys.exit(constants.ExitCode.EXIT_FAILED_VERIFY_2FA_CODE.value)
+
+                if not api.is_trusted_session:
+                    print("Session is not trusted. Requesting trust...")
+                    result = api.trust_session()
+                    print("Session trust result %s" % result)
+
+                    if not result:
+                        print("Failed to request trust. You will likely be prompted for confirmation again in the coming weeks")
                     
             elif api.requires_2sa:
                 # fmt: off
@@ -72,7 +103,7 @@ def authenticate(
                         )
                     )
 
-                device = int(input("\nWhich device number would you like to use: "))
+                device = click.prompt('Which device would you like to use?', default=0)
                 device = devices[device]
                 if not api.send_verification_code(device):
                     logger.debug("Failed to send verification code")
