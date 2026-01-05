@@ -452,7 +452,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
         folders_created = 0
         children = folder.get_children(True)
         for child in children:
-            if child.type != "file":
+            if child.type == "folder":
                 if child.name.startswith('.com-apple-bird'):
                     self.logger.info(f"skipping {child.name} iCloud Drive folder")
                 else:
@@ -465,7 +465,7 @@ class iCloudDriveHandler(PatternMatchingEventHandler):
                     folders_files = self._recurse_icloud_drive(child, path) #, files_downloaded, folders_created)
                     folders_created = folders_created + folders_files[0]
                     files_downloaded = files_downloaded + folders_files[1]
-            else:
+            elif child.type == "file":
                 path = os.path.join(directory, child.name)
                 if not os.path.exists(path) or self._need_to_download(path, child):
                     self.logger.info(f"downloading {path[len(self.directory)+1:]}")
