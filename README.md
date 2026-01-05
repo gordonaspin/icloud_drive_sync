@@ -20,13 +20,14 @@ iCloud Drive Sync does not monitor your iCloud Drive to download changes, but do
 ## Install
 Do not use the `pyicloud` Python package that can be installed using `pip`.
 
-`icloudds` depends on my forked version of python pyicloud library implementation https://github.com/gordonaspin/pyicloud. My forked implementation resolves
+`icloudds` depends on a forked version of python pyicloud library implementation pyicloud @ git+https://github.com/timlaing/pyicloud.git. This forked implementation resolves
 a retrieval limit of 200 albums (in Photos) and has added features to properly set timestamps of objects uploaded to iCloud Drive.
 
 ``` sh
-git clone https://github.com/gordonaspin/pyicloud
+git clone https://github.com/timlaing/pyicloud.git
 cd pyicloud
-pip install .
+python -m build
+pip install dist/*.whl
 ```
 
 > If you need to install Python, see the [Requirements](#requirements) section for instructions.
