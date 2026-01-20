@@ -1,3 +1,6 @@
+# No longer maintained by me as of January 2026. Please refer to my re-write here [icloudds](https://github.com/gordonaspin/icloudds)
+
+
 # iCloud Drive Sync [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 - A command-line tool to download synchronize your iCloud Drive.
