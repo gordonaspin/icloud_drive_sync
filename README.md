@@ -21,11 +21,6 @@ translates to a webservice call to delete the object, followed by a webservice c
 iCloud Drive Sync does not monitor your iCloud Drive to download changes, but does loop every --resync-period minutes effectively brute-forcing a sync to and from iCloud Drive.
 
 ## Install
-Do not use the `pyicloud` Python package that can be installed using `pip`.
-
-`icloudds` depends on a forked version of python pyicloud library implementation pyicloud @ git+https://github.com/timlaing/pyicloud.git. This forked implementation resolves
-a retrieval limit of 200 albums (in Photos) and has added features to properly set timestamps of objects uploaded to iCloud Drive.
-
 ``` sh
 git clone https://github.com/timlaing/pyicloud.git
 cd pyicloud
